@@ -1,0 +1,702 @@
+@import 'leaflet/dist/leaflet.css';
+@import 'leaflet.markercluster/dist/MarkerCluster.css';
+@import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* === STYLES PERSONNALISÉS EXISTANTS === */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* === STYLES LEAFLET === */
+/* Import des styles Leaflet (important pour le fonctionnement) */
+
+/* Container principal Leaflet */
+.leaflet-container {
+  height: 400px;
+  width: 100%;
+  border-radius: 8px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  z-index: 1;
+}
+
+/* Popups personnalisées */
+.leaflet-popup-content-wrapper {
+  border-radius: 12px !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.leaflet-popup-content {
+  margin: 0 !important;
+  line-height: 1.4 !important;
+  min-width: 250px !important;
+}
+
+.leaflet-popup-tip {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Personnalisation des contrôles */
+.leaflet-control-zoom a {
+  background-color: white !important;
+  color: #374151 !important;
+  border: 1px solid #d1d5db !important;
+  font-weight: bold !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background-color: #f9fafb !important;
+}
+
+.leaflet-control-attribution {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  font-size: 10px !important;
+}
+
+/* Styles pour nos marqueurs personnalisés */
+.custom-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+.custom-marker:hover {
+  transform: scale(1.1);
+  transition: transform 0.2s ease;
+}
+
+/* === STYLES POUR LE CLUSTERING === */
+
+/* Override des styles par défaut de MarkerCluster */
+.marker-cluster-custom {
+  background-clip: padding-box;
+  border: 3px solid white;
+  border-radius: 50%;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  font-weight: bold;
+  text-align: center;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Clusters de différentes tailles */
+.cluster-small {
+  width: 40px !important;
+  height: 40px !important;
+  line-height: 34px !important;
+  font-size: 12px !important;
+}
+
+.cluster-medium {
+  width: 50px !important;
+  height: 50px !important;
+  line-height: 44px !important;
+  font-size: 14px !important;
+}
+
+.cluster-large {
+  width: 60px !important;
+  height: 60px !important;
+  line-height: 54px !important;
+  font-size: 16px !important;
+  font-weight: bold !important;
+}
+
+/* Animation pour les clusters */
+.marker-cluster-custom div {
+  transition: all 0.3s ease;
+}
+
+.marker-cluster-custom:hover div {
+  transform: scale(1.1);
+}
+
+/* Styles pour la couverture des clusters (cachée car nous utilisons notre propre style) */
+.marker-cluster-custom span {
+  display: none;
+}
+
+/* Effet de pulsation pour les clusters à haute priorité */
+.cluster-high-priority {
+  animation: pulse-cluster 2s infinite;
+}
+
+@keyframes pulse-cluster {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+  }
+}
+
+/* Pattern de fond pour les états vides */
+.bg-grid-pattern {
+  background-image: 
+    linear-gradient(rgba(59, 130, 246, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59, 130, 246, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Animation pour les points interactifs */
+@keyframes pulse-glow {
+  0%, 100% { 
+    transform: scale(1);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  }
+  50% { 
+    transform: scale(1.1);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+  }
+}
+
+.leaflet-marker-icon:hover {
+  animation: pulse-glow 1s infinite;
+}
+
+/* Amélioration de la scrollbar pour les listes */
+.overflow-y-auto {
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db #f3f4f6;
+}
+
+.overflow-y-auto::-webkit-scrollbar {
+  width: 6px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 3px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* États de focus accessibles */
+.leaflet-container:focus {
+  outline: 2px solid #10b981;
+  outline-offset: 2px;
+}
+
+.leaflet-marker-icon:focus {
+  outline: 2px solid #3B82F6;
+  outline-offset: 2px;
+}
+
+/* Amélioration du contraste pour l'accessibilité */
+.leaflet-control-attribution a {
+  color: #374151 !important;
+  font-weight: 500;
+}
+
+.leaflet-control-attribution a:hover {
+  color: #111827 !important;
+}
+
+/* === STYLES POUR LES MARQUEURS PERSONNALISÉS === */
+.report-marker {
+  transition: all 0.3s ease;
+}
+
+.report-marker:hover {
+  filter: brightness(1.2);
+  transform: scale(1.15);
+}
+
+/* Styles pour les popups personnalisées */
+.custom-popup {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.custom-popup .leaflet-popup-content-wrapper {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+.custom-popup .leaflet-popup-content {
+  margin: 16px 20px;
+  line-height: 1.4;
+}
+
+.custom-popup .leaflet-popup-tip {
+  background: white;
+}
+
+/* === OVERRIDE DES STYLES PAR DÉFAUT MARKERCLUSTER === */
+
+/* Cacher les styles par défaut qu'on remplace */
+.marker-cluster-small,
+.marker-cluster-medium,
+.marker-cluster-large {
+  background-color: transparent !important;
+}
+
+.marker-cluster-small div,
+.marker-cluster-medium div,
+.marker-cluster-large div {
+  background-color: transparent !important;
+}
+
+.marker-cluster span {
+  display: none !important;
+}
+
+/* Styles pour la spiderfication (quand on clique sur un cluster) */
+.marker-cluster-spiderfy {
+  z-index: 1000;
+}
+
+/* === RESPONSIVE DESIGN === */
+@media (max-width: 768px) {
+  .leaflet-container {
+    height: 300px;
+    border-radius: 6px;
+  }
+  
+  .leaflet-popup-content {
+    min-width: 200px !important;
+  }
+
+  /* Clusters plus petits sur mobile */
+  .cluster-small {
+    width: 35px !important;
+    height: 35px !important;
+    line-height: 29px !important;
+    font-size: 11px !important;
+  }
+  
+  .cluster-medium {
+    width: 45px !important;
+    height: 45px !important;
+    line-height: 39px !important;
+    font-size: 13px !important;
+  }
+  
+  .cluster-large {
+    width: 55px !important;
+    height: 55px !important;
+    line-height: 49px !important;
+    font-size: 14px !important;
+  }
+
+  /* Contrôles plus compacts sur mobile */
+  .leaflet-control-zoom {
+    margin: 5px !important;
+  }
+
+  .leaflet-control-zoom a {
+    width: 25px !important;
+    height: 25px !important;
+    line-height: 23px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .leaflet-container {
+    height: 250px;
+  }
+
+  .cluster-small {
+    width: 30px !important;
+    height: 30px !important;
+    line-height: 24px !important;
+    font-size: 10px !important;
+  }
+  
+  .cluster-medium {
+    width: 40px !important;
+    height: 40px !important;
+    line-height: 34px !important;
+    font-size: 12px !important;
+  }
+  
+  .cluster-large {
+    width: 50px !important;
+    height: 50px !important;
+    line-height: 44px !important;
+    font-size: 13px !important;
+  }
+}
+
+/* === ANIMATIONS ET TRANSITIONS === */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.leaflet-popup {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Transition fluide pour le zoom */
+.leaflet-zoom-animated {
+  transition: transform 0.25s cubic-bezier(0, 0, 0.25, 1);
+}
+
+/* === STYLES POUR LES COUCHES ET OVERLAYS === */
+.leaflet-interactive {
+  transition: stroke-width 0.2s ease, fill-opacity 0.2s ease;
+}
+
+.leaflet-interactive:hover {
+  stroke-width: 3px;
+}
+
+/* === STYLES POUR LES MARQUEURS AVEC ÉTATS === */
+.marker-new {
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-5px);
+  }
+  60% {
+    transform: translateY(-3px);
+  }
+}
+
+.marker-high-priority {
+  filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.6));
+}
+
+.marker-resolved {
+  opacity: 0.7;
+  filter: grayscale(0.3);
+}
+
+/* === UTILITAIRES SUPPLEMENTAIRES === */
+.leaflet-marker-draggable {
+  cursor: move !important;
+}
+
+.leaflet-marker-clickable {
+  cursor: pointer !important;
+}
+
+/* Masquer le loader par défaut de Leaflet */
+.leaflet-container .leaflet-control-container .leaflet-top .leaflet-control {
+  margin-top: 10px;
+  margin-left: 10px;
+}
+
+/* Style pour les contrôles personnalisés */
+.leaflet-control-custom {
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  padding: 5px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* === IMPRESSION === */
+@media print {
+  .leaflet-control-container {
+    display: none !important;
+  }
+  
+  .leaflet-popup {
+    display: none !important;
+  }
+}
+
+/* === DARK MODE SUPPORT (si jamais implémenté) === */
+@media (prefers-color-scheme: dark) {
+  .leaflet-layer,
+  .leaflet-control-zoom a,
+  .leaflet-control-attribution {
+    filter: invert(1) hue-rotate(180deg);
+  }
+  
+  .leaflet-popup-content-wrapper {
+    background: #1f2937;
+    color: #f9fafb;
+  }
+  
+  .leaflet-popup-tip {
+    background: #1f2937;
+  }
+}
+
+/* === PERFORMANCE OPTIMIZATIONS === */
+.leaflet-tile-pane {
+  will-change: transform;
+}
+
+.leaflet-marker-pane {
+  will-change: transform;
+}
+
+.leaflet-overlay-pane {
+  will-change: transform;
+}
+
+
+/* ============================================================
+   MODE SOMBRE — html.dark
+   Stratégie : surcharges CSS ciblées, sans toucher aux composants
+   Version calibrée pour lisibilité maximale
+   ============================================================ */
+
+html.dark { color-scheme: dark; }
+
+/* ── Fonds principaux ── */
+html.dark body                { background-color: #0f172a; color: #e2e8f0; }
+html.dark main                { background-color: #0f172a; }
+html.dark aside               { background-color: #1e293b !important; border-color: #334155 !important; }
+html.dark header              { background-color: #1e293b !important; border-color: #334155 !important; }
+
+/* ── Cartes & panneaux ── */
+html.dark .bg-white           { background-color: #1e293b !important; }
+html.dark .bg-gray-50         { background-color: #0f172a !important; }
+html.dark .bg-gray-100        { background-color: #1e293b !important; }
+html.dark .bg-gray-200        { background-color: #334155 !important; }
+html.dark .bg-slate-50        { background-color: #0f172a !important; }
+html.dark .bg-slate-700       { background-color: #0f172a !important; }
+html.dark .bg-slate-800       { background-color: #020617 !important; }
+
+/* ── Textes ── */
+html.dark .text-gray-900      { color: #f1f5f9 !important; }
+html.dark .text-gray-800      { color: #e2e8f0 !important; }
+html.dark .text-gray-700      { color: #cbd5e1 !important; }
+html.dark .text-gray-600      { color: #94a3b8 !important; }
+html.dark .text-gray-500      { color: #64748b !important; }
+html.dark .text-gray-400      { color: #475569 !important; }
+html.dark .text-gray-300      { color: #334155 !important; }
+
+/* ── Textes colorés sur badges — plus lumineux en dark ── */
+html.dark .text-emerald-600,
+html.dark .text-emerald-700   { color: #34d399 !important; }
+html.dark .text-green-600,
+html.dark .text-green-700     { color: #4ade80 !important; }
+html.dark .text-green-800,
+html.dark .text-green-900     { color: #22c55e !important; }
+html.dark .text-blue-600,
+html.dark .text-blue-700      { color: #60a5fa !important; }
+html.dark .text-red-500,
+html.dark .text-red-600,
+html.dark .text-red-700       { color: #f87171 !important; }
+html.dark .text-amber-600,
+html.dark .text-amber-700     { color: #fbbf24 !important; }
+html.dark .text-yellow-600,
+html.dark .text-yellow-700    { color: #facc15 !important; }
+html.dark .text-purple-600,
+html.dark .text-purple-700    { color: #a78bfa !important; }
+html.dark .text-orange-500,
+html.dark .text-orange-600    { color: #fb923c !important; }
+html.dark .text-sky-600,
+html.dark .text-sky-700       { color: #38bdf8 !important; }
+html.dark .text-teal-600,
+html.dark .text-teal-700      { color: #2dd4bf !important; }
+
+/* ── Bordures — subtiles, pas envahissantes ── */
+html.dark .border             { border-color: #334155 !important; }
+html.dark .border-gray-100    { border-color: #1e293b !important; }
+html.dark .border-gray-200    { border-color: #334155 !important; }
+html.dark .border-gray-300    { border-color: #475569 !important; }
+html.dark .border-t           { border-top-color:    #1e293b !important; }
+html.dark .border-b           { border-bottom-color: #1e293b !important; }
+html.dark .border-l           { border-left-color:   #1e293b !important; }
+html.dark .border-r           { border-right-color:  #1e293b !important; }
+html.dark hr                  { border-color: #1e293b !important; }
+html.dark .divide-y > * + *,
+html.dark .divide-gray-50 > * + *,
+html.dark .divide-gray-100 > * + * { border-top-color: #1e293b !important; }
+
+/* ── Tableaux ── */
+html.dark table               { background-color: #1e293b !important; }
+html.dark thead tr            { background-color: #0f172a !important; }
+html.dark th                  {
+  background-color: #0f172a !important;
+  color: #64748b !important;
+  border-bottom-color: #334155 !important;
+}
+html.dark td                  {
+  border-bottom-color: #1e293b !important;
+  color: #cbd5e1;
+}
+html.dark tbody tr:hover      { background-color: rgba(30,58,95,0.15) !important; }
+html.dark tbody tr:nth-child(even) { background-color: rgba(15,23,42,0.5) !important; }
+
+/* ── Inputs & selects ── */
+html.dark input,
+html.dark textarea,
+html.dark select {
+  background-color: #0f172a !important;
+  color: #e2e8f0 !important;
+  border-color: #334155 !important;
+}
+html.dark input::placeholder,
+html.dark textarea::placeholder { color: #475569 !important; opacity: 1 !important; }
+html.dark select option        { background-color: #1e293b; color: #e2e8f0; }
+
+/* ── Badges colorés — fond semi-transparent ── */
+html.dark .bg-emerald-50      { background-color: rgba(6,78,59,0.25) !important; }
+html.dark .bg-green-50        { background-color: rgba(5,46,22,0.3) !important; }
+html.dark .bg-blue-50         { background-color: rgba(30,58,138,0.25) !important; }
+html.dark .bg-blue-100        { background-color: rgba(30,58,138,0.35) !important; }
+html.dark .bg-red-50          { background-color: rgba(69,10,10,0.3) !important; }
+html.dark .bg-red-100         { background-color: rgba(69,10,10,0.4) !important; }
+html.dark .bg-amber-50,
+html.dark .bg-yellow-50       { background-color: rgba(69,26,3,0.3) !important; }
+html.dark .bg-amber-100,
+html.dark .bg-yellow-100      { background-color: rgba(69,26,3,0.4) !important; }
+html.dark .bg-purple-50       { background-color: rgba(46,16,101,0.3) !important; }
+html.dark .bg-purple-100      { background-color: rgba(46,16,101,0.4) !important; }
+html.dark .bg-teal-50         { background-color: rgba(4,47,46,0.3) !important; }
+html.dark .bg-sky-50          { background-color: rgba(8,47,73,0.3) !important; }
+html.dark .bg-orange-50       { background-color: rgba(67,20,7,0.3) !important; }
+html.dark .bg-fuchsia-50      { background-color: rgba(74,4,78,0.3) !important; }
+
+/* ── Hover ── */
+html.dark .hover\:bg-gray-50:hover  { background-color: #0f172a !important; }
+html.dark .hover\:bg-gray-100:hover { background-color: #334155 !important; }
+html.dark .hover\:bg-red-50:hover   { background-color: rgba(69,10,10,0.3) !important; }
+
+/* ── Sidebar nav actif ── */
+html.dark .bg-emerald-50.text-emerald-700 {
+  background-color: rgba(6,78,59,0.3) !important;
+  color: #34d399 !important;
+}
+html.dark .bg-emerald-100     { background-color: rgba(6,78,59,0.4) !important; }
+html.dark .text-emerald-600.bg-emerald-100 { color: #34d399 !important; }
+
+/* ── Recharts ── */
+html.dark .recharts-cartesian-grid line  { stroke: #1e293b !important; }
+html.dark .recharts-text                 { fill: #64748b !important; }
+html.dark .recharts-legend-item-text     { color: #94a3b8 !important; }
+html.dark .recharts-default-tooltip      {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+}
+html.dark .recharts-tooltip-label        { color: #e2e8f0 !important; }
+html.dark .recharts-tooltip-item         { color: #94a3b8 !important; }
+
+/* ── Leaflet ── */
+html.dark .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9);
+}
+html.dark .leaflet-control-zoom a {
+  background-color: #1e293b !important;
+  color: #e2e8f0 !important;
+  border-color: #334155 !important;
+}
+html.dark .leaflet-popup-content-wrapper {
+  background: #1e293b !important;
+  color: #e2e8f0 !important;
+}
+html.dark .leaflet-popup-tip            { background: #1e293b !important; }
+html.dark .leaflet-control-attribution  {
+  background-color: rgba(30,41,59,0.9) !important;
+  color: #64748b !important;
+}
+
+/* ── Scrollbar ── */
+html.dark .overflow-y-auto {
+  scrollbar-color: #334155 #1e293b;
+}
+html.dark .overflow-y-auto::-webkit-scrollbar-track { background: #1e293b; }
+html.dark .overflow-y-auto::-webkit-scrollbar-thumb { background: #334155; }
+html.dark .overflow-y-auto::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+/* ── Transition fluide ── */
+html *, html *::before, html *::after {
+  transition:
+    background-color 0.2s ease,
+    border-color     0.2s ease,
+    color            0.15s ease;
+}
+/* Exclure les éléments visuels */
+html canvas,
+html video,
+html img,
+html svg *,
+html .leaflet-tile-pane,
+html .leaflet-tile-pane * {
+  transition: none !important;
+  filter: none;
+}
+html.dark .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) !important;
+}
+
+/* ── Correctifs spécifiques composants IA ── */
+
+/* PredictiveInsights — fonds dégradés et colorés inline */
+html.dark [class*="from-blue-50"],
+html.dark [class*="to-indigo-50"]     { background: rgba(30,58,138,0.2) !important; }
+html.dark .bg-purple-50.rounded-lg    { background-color: rgba(46,16,101,0.25) !important; }
+html.dark .bg-green-50.rounded-lg,
+html.dark .bg-green-50.rounded-xl     { background-color: rgba(5,46,22,0.25) !important; }
+html.dark .border-blue-200            { border-color: rgba(30,58,138,0.4) !important; }
+html.dark .border-green-200           { border-color: rgba(22,101,52,0.4) !important; }
+html.dark .border-purple-200          { border-color: rgba(107,33,168,0.4) !important; }
+
+/* AIAnalysisPanel — panneaux internes */
+html.dark .rounded-xl.border          { background-color: #1e293b !important; border-color: #334155 !important; }
+html.dark .rounded-lg.border          { background-color: #0f172a !important; border-color: #1e293b !important; }
+
+/* bg-gradient-to-r (Tailwind utility) */
+html.dark [class*="bg-gradient"]      { background-image: none !important; background-color: #1e293b !important; }
+
+/* Textes forcés blanc dans les zones sombres */
+html.dark .text-gray-700.font-semibold,
+html.dark .text-gray-700.font-medium  { color: #cbd5e1 !important; }
+html.dark .text-gray-900.font-bold,
+html.dark .text-gray-900.font-semibold { color: #f1f5f9 !important; }
+html.dark .text-gray-600.font-medium  { color: #94a3b8 !important; }
+html.dark .text-gray-600.text-sm      { color: #94a3b8 !important; }
+
+/* Boutons dans les panneaux IA */
+html.dark button.bg-emerald-600,
+html.dark button.bg-green-600         { background-color: #059669 !important; color: #fff !important; }
+html.dark button.bg-blue-600          { background-color: #2563eb !important; color: #fff !important; }
+
+/* Badges inline avec style= (non couverts par les classes) */
+html.dark span[style*="background:#f"],
+html.dark span[style*="background: #f"] { filter: brightness(0.4) saturate(1.5); }
