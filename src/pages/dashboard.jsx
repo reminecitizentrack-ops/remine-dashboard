@@ -24,6 +24,7 @@ import { RegionDashboard }     from '../components/RegionDashboard';
 import { ActionHistory }       from '../components/ActionHistory';
 import { Messaging }           from '../components/Messaging';
 import { AutoReport }          from '../components/AutoReport';
+import { NotificationBell }    from '../components/NotificationBell';
 import { LOGO_BASE64 }         from '../assets/logo';
 import { aiService }           from '../services/aiService';
 import { useQuery }             from '@tanstack/react-query';
@@ -861,6 +862,9 @@ export default function Dashboard() {
             >
               🎮 <span className="hidden lg:inline">Données démo</span>
             </button>
+            {/* Centre de notifications */}
+            <NotificationBell onNavigate={handleTabChange} />
+
             {/* Profil admin */}
             <div className="relative" data-profile>
               <button
