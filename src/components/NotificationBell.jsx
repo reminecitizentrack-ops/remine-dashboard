@@ -133,6 +133,12 @@ export function NotificationBell({ onNavigate }) {
   const [notifications, setNotifications] = useState([]);
   const [loading,      setLoading]      = useState(false);
   const [filter,       setFilter]       = useState('all'); // all | unread
+  const [deletedIds,   setDeletedIds]   = useState(() => {
+    try {
+      const stored = localStorage.getItem('remine_deleted_notifs');
+      return new Set(JSON.parse(stored) || []);
+    } catch { return new Set(); }
+  });
   const [readIds,      setReadIds]      = useState(() => {
     try {
       const stored = localStorage.getItem('remine_read_notifs');
@@ -199,6 +205,26 @@ export function NotificationBell({ onNavigate }) {
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
 
+  // ── Supprimer une notification ───────────────────────────────────────────
+
+  const deleteNotif = (e, id) => {
+    e.stopPropagation();
+    setDeletedIds(prev => {
+      const next = new Set(prev).add(id);
+      localStorage.setItem('remine_deleted_notifs', JSON.stringify([...next]));
+      return next;
+    });
+  };
+
+  const deleteAll = () => {
+    const allIds = notifications.map(n => n.id);
+    setDeletedIds(prev => {
+      const next = new Set([...prev, ...allIds]);
+      localStorage.setItem('remine_deleted_notifs', JSON.stringify([...next]));
+      return next;
+    });
+  };
+
   // ── Marquer comme lu ──────────────────────────────────────────────────────
 
   const markRead = (id) => {
@@ -220,7 +246,10 @@ export function NotificationBell({ onNavigate }) {
 
   // ── Données filtrées ──────────────────────────────────────────────────────
 
-  const notificationsWithRead = notifications.map(n => ({
+  // Exclure les notifications supprimées
+  const visibleNotifications = notifications.filter(n => !deletedIds.has(n.id));
+
+  const notificationsWithRead = visibleNotifications.map(n => ({
     ...n,
     read: readIds.has(n.id),
   }));
@@ -236,7 +265,7 @@ export function NotificationBell({ onNavigate }) {
   const handleNotifClick = (notif) => {
     markRead(notif.id);
     if (notif.reportId && onNavigate) {
-      onNavigate('reports');
+      onNavigate('reports', notif.reportId);
     }
     setOpen(false);
   };
@@ -280,14 +309,24 @@ export function NotificationBell({ onNavigate }) {
               )}
             </div>
             <div className="flex items-center gap-2">
-              {unreadCount > 0 && (
-                <button
-                  onClick={markAllRead}
-                  className="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
-                >
-                  Tout lire
-                </button>
-              )}
+              <div className="flex items-center gap-3">
+                {unreadCount > 0 && (
+                  <button
+                    onClick={markAllRead}
+                    className="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
+                  >
+                    Tout lire
+                  </button>
+                )}
+                {visibleNotifications.length > 0 && (
+                  <button
+                    onClick={deleteAll}
+                    className="text-xs text-red-500 hover:text-red-600 font-medium"
+                  >
+                    Tout supprimer
+                  </button>
+                )}
+              </div>
               <button
                 onClick={loadNotifications}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -338,7 +377,7 @@ export function NotificationBell({ onNavigate }) {
                   <button
                     key={notif.id}
                     onClick={() => handleNotifClick(notif)}
-                    className={`w-full text-left px-4 py-3 border-b border-gray-50 hover:bg-gray-50 transition-colors flex items-start gap-3 ${
+                    className={`group w-full text-left px-4 py-3 border-b border-gray-50 hover:bg-gray-50 transition-colors flex items-start gap-3 ${
                       !notif.read ? 'bg-blue-50/30' : ''
                     }`}
                   >
@@ -360,10 +399,19 @@ export function NotificationBell({ onNavigate }) {
                       <p className="text-xs text-gray-500 truncate mt-0.5">{notif.message}</p>
                     </div>
 
-                    {/* Point non lu */}
-                    {!notif.read && (
-                      <div className="flex-shrink-0 w-2 h-2 bg-blue-500 rounded-full mt-1.5" />
-                    )}
+                    {/* Actions */}
+                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                      {!notif.read && (
+                        <div className="w-2 h-2 bg-blue-500 rounded-full" />
+                      )}
+                      <button
+                        onClick={(e) => deleteNotif(e, notif.id)}
+                        className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 transition-all text-base leading-none"
+                        title="Supprimer"
+                      >
+                        ×
+                      </button>
+                    </div>
                   </button>
                 );
               })

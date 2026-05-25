@@ -863,7 +863,7 @@ export default function Dashboard() {
               🎮 <span className="hidden lg:inline">Données démo</span>
             </button>
             {/* Centre de notifications */}
-            <NotificationBell onNavigate={handleTabChange} />
+            <NotificationBell onNavigate={(tab, reportId) => handleTabChange(tab, reportId)} />
 
             {/* Profil admin */}
             <div className="relative" data-profile>
