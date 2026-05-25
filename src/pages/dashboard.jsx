@@ -91,35 +91,125 @@ const StatPill = ({ label, value, color = 'gray' }) => {
   );
 };
 
-const NavItem = ({ tab, active, onClick, badge, collapsed = false }) => (
-  <button
-    onClick={() => onClick(tab.id)}
-    title={collapsed ? tab.label : undefined}
-    className={`group w-full flex items-center gap-3 px-2 py-2.5 rounded-lg text-left text-sm font-medium transition-all duration-150 ${
-      active
-        ? 'bg-emerald-50 text-emerald-700 shadow-sm'
-        : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
-    } ${collapsed ? 'justify-center' : ''}`}
-  >
-    <span className={`w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-lg text-base transition-colors relative ${
-      active ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-100 text-gray-400 group-hover:bg-gray-200 group-hover:text-gray-600'
-    }`}>
-      {tab.icon}
-      {collapsed && badge > 0 && (
-        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold w-4 h-4 rounded-full flex items-center justify-center" style={{fontSize:9}}>
-          {badge > 9 ? '9+' : badge}
+const NavItem = ({ tab, active, onClick, badge, collapsed = false }) => {
+  const [hovered, setHovered] = React.useState(false);
+  return (
+    <button
+      onClick={() => onClick(tab.id)}
+      title={collapsed ? tab.label : undefined}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        width: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        gap: collapsed ? 0 : 12,
+        padding: '8px 8px',
+        borderRadius: 10,
+        textAlign: 'left',
+        fontSize: 13,
+        fontWeight: 500,
+        border: 'none',
+        cursor: 'pointer',
+        justifyContent: collapsed ? 'center' : 'flex-start',
+        background: active ? 'linear-gradient(135deg, #ecfdf5, #d1fae5)' : hovered ? '#f9fafb' : 'transparent',
+        color: active ? '#059669' : hovered ? '#374151' : '#6b7280',
+        boxShadow: active ? '0 1px 4px rgba(5,150,105,0.12)' : 'none',
+        transition: 'all 0.18s cubic-bezier(0.4,0,0.2,1)',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Barre active gauche */}
+      {active && !collapsed && (
+        <span style={{
+          position: 'absolute', left: 0, top: '20%', bottom: '20%',
+          width: 3, borderRadius: 4,
+          background: 'linear-gradient(180deg, #10b981, #059669)',
+          transition: 'all 0.2s',
+        }} />
+      )}
+
+      {/* Icône */}
+      <span style={{
+        width: 34, height: 34, flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        borderRadius: 10, fontSize: 17, position: 'relative',
+        background: active
+          ? 'linear-gradient(135deg, #10b981, #059669)'
+          : hovered ? '#f3f4f6' : '#f9fafb',
+        boxShadow: active ? '0 4px 12px rgba(16,185,129,0.3)' : 'none',
+        transform: active ? 'scale(1.08)' : hovered ? 'scale(1.04)' : 'scale(1)',
+        transition: 'all 0.2s cubic-bezier(0.34,1.56,0.64,1)',
+        filter: active ? 'brightness(1.1)' : 'none',
+      }}>
+        <span style={{
+          display: 'inline-block',
+          transform: hovered && !active ? 'rotate(-8deg) scale(1.15)' : 'rotate(0) scale(1)',
+          transition: 'transform 0.2s cubic-bezier(0.34,1.56,0.64,1)',
+          filter: active ? 'brightness(0) invert(1)' : 'none',
+        }}>
+          {tab.icon}
+        </span>
+        {collapsed && badge > 0 && (
+          <span style={{
+            position: 'absolute', top: -4, right: -4,
+            background: '#ef4444', color: '#fff',
+            fontSize: 9, fontWeight: 700,
+            width: 16, height: 16, borderRadius: '50%',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            animation: 'navBadgePulse 1.5s infinite',
+          }}>
+            {badge > 9 ? '9+' : badge}
+          </span>
+        )}
+      </span>
+
+      {!collapsed && <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tab.label}</span>}
+
+      {!collapsed && badge > 0 && (
+        <span style={{
+          flexShrink: 0, background: '#ef4444', color: '#fff',
+          fontSize: 10, fontWeight: 700,
+          padding: '2px 6px', borderRadius: 20,
+          animation: 'navBadgePulse 1.5s infinite',
+        }}>
+          {badge > 99 ? '99+' : badge}
         </span>
       )}
-    </span>
-    {!collapsed && <span className="flex-1 truncate">{tab.label}</span>}
-    {!collapsed && badge > 0 && (
-      <span className="flex-shrink-0 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-5 text-center">
-        {badge > 99 ? '99+' : badge}
-      </span>
-    )}
-    {!collapsed && active && <span className="w-1.5 h-1.5 flex-shrink-0 bg-emerald-500 rounded-full" />}
-  </button>
-);
+
+      {!collapsed && active && (
+        <span style={{
+          width: 7, height: 7, flexShrink: 0,
+          background: 'linear-gradient(135deg, #10b981, #059669)',
+          borderRadius: '50%',
+          animation: 'navDotPulse 2s infinite',
+        }} />
+      )}
+    </button>
+  );
+};
+
+// Keyframes pour animations nav
+if (typeof document !== 'undefined' && !document.getElementById('remine-nav-styles')) {
+  const style = document.createElement('style');
+  style.id = 'remine-nav-styles';
+  style.textContent = `
+    @keyframes navBadgePulse {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239,68,68,0.4); }
+      50% { transform: scale(1.1); box-shadow: 0 0 0 4px rgba(239,68,68,0); }
+    }
+    @keyframes navDotPulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(0.8); }
+    }
+    @keyframes statCardIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  `;
+  document.head.appendChild(style);
+}
 
 const LoadingScreen = () => (
   <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -436,18 +526,43 @@ export default function Dashboard() {
             {/* Stats principales */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: 'Total signalements', value: memoizedStats?.overview?.totalReports || 0, icon: '📋', color: 'blue',   sub: `${memoizedStats?.overview?.activeReports || 0} actifs` },
-                { label: 'Résolus',            value: memoizedStats?.overview?.resolvedReports || 0, icon: '✅', color: 'green',  sub: `${Math.round(memoizedStats?.overview?.resolutionRate || 0)}% taux` },
-                { label: 'Urgents',            value: urgentCount,  icon: '🚨', color: 'red',    sub: 'Nécessitent action' },
-                { label: 'Citoyens',           value: memoizedStats?.overview?.totalUsers || 0, icon: '👥', color: 'purple', sub: 'inscrits' },
-              ].map(s => (
-                <div key={s.label} className={`bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow`}>
-                  <div className="flex items-start justify-between mb-3">
-                    <span className="text-2xl">{s.icon}</span>
-                    <span className="text-xs text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">{s.sub}</span>
+                { label: 'Total signalements', value: memoizedStats?.overview?.totalReports || 0, icon: '📋', color: '#3b82f6', bg: '#eff6ff', sub: `${memoizedStats?.overview?.activeReports || 0} actifs` },
+                { label: 'Résolus',            value: memoizedStats?.overview?.resolvedReports || 0, icon: '✅', color: '#10b981', bg: '#ecfdf5', sub: `${Math.round(memoizedStats?.overview?.resolutionRate || 0)}% taux` },
+                { label: 'Urgents',            value: urgentCount,  icon: '🚨', color: '#ef4444', bg: '#fef2f2', sub: 'Nécessitent action' },
+                { label: 'Citoyens',           value: memoizedStats?.overview?.totalUsers || 0, icon: '👥', color: '#8b5cf6', bg: '#f5f3ff', sub: 'inscrits' },
+              ].map((s, i) => (
+                <div key={s.label} style={{
+                  background: '#fff',
+                  borderRadius: 18,
+                  padding: 20,
+                  border: '1px solid #f3f4f6',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                  animation: `statCardIn 0.4s ease ${i * 0.08}s both`,
+                  transition: 'transform 0.2s, box-shadow 0.2s',
+                  cursor: 'default',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${s.color}22`; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.06)'; }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
+                    <span style={{
+                      width: 44, height: 44, borderRadius: 14,
+                      background: s.bg,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 22,
+                      boxShadow: `0 4px 12px ${s.color}22`,
+                      transition: 'transform 0.3s cubic-bezier(0.34,1.56,0.64,1)',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.15) rotate(-5deg)'}
+                    onMouseLeave={e => e.currentTarget.style.transform = 'scale(1) rotate(0)'}
+                    >{s.icon}</span>
+                    <span style={{ fontSize: 11, color: '#9ca3af', background: '#f9fafb', padding: '2px 8px', borderRadius: 20 }}>{s.sub}</span>
                   </div>
-                  <p className="text-3xl font-black text-gray-900 tabular-nums">{s.value}</p>
-                  <p className="text-sm text-gray-500 mt-1">{s.label}</p>
+                  <p style={{ fontSize: 34, fontWeight: 900, color: '#111827', fontVariantNumeric: 'tabular-nums', margin: 0 }}>{s.value}</p>
+                  <p style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>{s.label}</p>
+                  <div style={{ marginTop: 12, height: 3, borderRadius: 3, background: '#f3f4f6', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', borderRadius: 3, background: `linear-gradient(90deg, ${s.color}, ${s.color}99)`, width: s.value > 0 ? '100%' : '0%', transition: 'width 1s ease', }} />
+                  </div>
                 </div>
               ))}
             </div>
