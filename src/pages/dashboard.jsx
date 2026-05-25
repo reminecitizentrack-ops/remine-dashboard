@@ -707,10 +707,27 @@ export default function Dashboard() {
         {!collapsed && (
           <div className="px-4 py-4 border-t border-gray-100 bg-gray-50">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Résumé</p>
-            <StatPill label="Signalements actifs" value={memoizedStats?.overview?.activeReports || 0} color="orange" />
-            <StatPill label="Taux de résolution"  value={`${Math.round(memoizedStats?.overview?.resolutionRate || 0)}%`} color="green" />
-            <StatPill label="Citoyens inscrits"   value={memoizedStats?.overview?.totalUsers || 0} color="blue" />
-            <StatPill label="Projets actifs"      value={memoizedProjects.filter(p => p.status === 'active').length} color="gray" />
+            <StatPill label="Signalements actifs"
+              value={
+                memoizedStats?.overview?.activeReports ??
+                memoizedReports.filter(r => ['new','verified','in_progress'].includes(r.status)).length
+              }
+              color="orange" />
+            <StatPill label="Taux de résolution"
+              value={(() => {
+                if (memoizedStats?.overview?.resolutionRate != null)
+                  return `${Math.round(memoizedStats.overview.resolutionRate)}%`;
+                const total    = memoizedReports.length;
+                const resolved = memoizedReports.filter(r => r.status === 'resolved').length;
+                return total ? `${Math.round((resolved / total) * 100)}%` : '0%';
+              })()}
+              color="green" />
+            <StatPill label="Citoyens inscrits"
+              value={memoizedStats?.overview?.totalUsers ?? memoizedUsers.length}
+              color="blue" />
+            <StatPill label="Projets actifs"
+              value={memoizedProjects.filter(p => p.status === 'active').length}
+              color="gray" />
           </div>
         )}
 

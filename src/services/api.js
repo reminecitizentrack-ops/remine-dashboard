@@ -143,11 +143,13 @@ export const dashboardAPI = {
     }
   },
 
-  async updateReportStatus(reportId, status, note) {
+  async updateReportStatus(reportId, status, note, assignedTo = null) {
     try {
+      const body = { status, note };
+      if (assignedTo) body.assignedTo = assignedTo;
       const response = await authFetch(`${API_BASE_URL}/admin/reports/${reportId}/status`, {
         method: 'PUT',
-        body: JSON.stringify({ status, note }),
+        body: JSON.stringify(body),
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
