@@ -273,6 +273,44 @@ export const UsersManagement = ({ users: initialUsers, onNotify = () => {} }) =>
     setUsers(prev => prev.filter(u => (u._id || u.id) !== userId));
   };
 
+  const handleExportCSV = () => {
+    const SEP = ';';
+    const cell = (v) => {
+      if (v === null || v === undefined) return '""';
+      return `"${String(v).replace(/"/g, '""').replace(/\r?\n/g, ' ')}"`;
+    };
+    const fmtDate = (d) => d ? new Date(d).toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric' }) : '';
+
+    const ROLE_LABELS = { admin:'Administrateur', moderator:'Modérateur', citizen:'Citoyen' };
+
+    const headers = [
+      'Nom', 'Prénom', 'Email', 'Rôle', 'Communauté', 'Téléphone',
+      'Date inscription', 'Statut', 'ID',
+    ].map(h => cell(h)).join(SEP);
+
+    const rows = filteredUsers.map(u => [
+      cell(u.lastName   || ''),
+      cell(u.firstName  || ''),
+      cell(u.email      || ''),
+      cell(ROLE_LABELS[u.role] || u.role || ''),
+      cell(u.community  || ''),
+      cell(u.phone      || ''),
+      cell(fmtDate(u.createdAt)),
+      cell(u.isActive !== false ? 'Actif' : 'Inactif'),
+      cell(u._id || u.id || ''),
+    ].join(SEP));
+
+    const bom = '\uFEFF';
+    const csv = bom + [headers, ...rows].join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `utilisateurs-remine-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleCreated = (newUser) => {
     setUsers(prev => [newUser, ...prev]);
   };
@@ -346,12 +384,21 @@ export const UsersManagement = ({ users: initialUsers, onNotify = () => {} }) =>
               <option value="name">Nom A-Z</option>
             </select>
           </div>
-          <button
-            onClick={() => setShowNewUser(true)}
-            className="bg-green-600 text-white px-5 py-2.5 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 text-sm font-medium whitespace-nowrap"
-          >
-            ➕ Nouvel utilisateur
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleExportCSV}
+              disabled={!filteredUsers.length}
+              className="bg-white border border-gray-300 text-gray-700 px-4 py-2.5 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2 text-sm font-medium whitespace-nowrap disabled:opacity-50"
+            >
+              📊 CSV
+            </button>
+            <button
+              onClick={() => setShowNewUser(true)}
+              className="bg-green-600 text-white px-5 py-2.5 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 text-sm font-medium whitespace-nowrap"
+            >
+              ➕ Nouvel utilisateur
+            </button>
+          </div>
         </div>
       </div>
 
