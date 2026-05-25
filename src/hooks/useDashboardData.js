@@ -412,19 +412,20 @@ export const useDashboardData = () => {
     
     // Rafraîchissement manuel
     refetchAll: () => {
-      queryClient.invalidateQueries(['dashboard-stats']);
-      queryClient.invalidateQueries(['reports']);
-      queryClient.invalidateQueries(['users']);
-      queryClient.invalidateQueries(['advanced-analytics']);
-      queryClient.invalidateQueries(['valorization-projects']);
-      queryClient.invalidateQueries(['impact-metrics']);
-      queryClient.invalidateQueries(['filter-options']);
+      // React Query v5 : syntaxe { queryKey: [...] }
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['reports'] });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['advanced-analytics'] });
+      queryClient.invalidateQueries({ queryKey: ['valorization-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['impact-metrics'] });
+      queryClient.invalidateQueries({ queryKey: ['filter-options'] });
     },
     
     // Rafraîchissement spécifique
     refetchReports,
-    refetchAnalytics: () => queryClient.invalidateQueries(['advanced-analytics']),
-    refetchProjects: () => queryClient.invalidateQueries(['valorization-projects']),
-    refetchImpact: () => queryClient.invalidateQueries(['impact-metrics'])
+    refetchAnalytics: () => queryClient.invalidateQueries({ queryKey: ['advanced-analytics'] }),
+    refetchProjects:  () => queryClient.invalidateQueries({ queryKey: ['valorization-projects'] }),
+    refetchImpact:    () => queryClient.invalidateQueries({ queryKey: ['impact-metrics'] })
   };
 };
