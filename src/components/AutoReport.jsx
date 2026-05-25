@@ -17,6 +17,11 @@ const STATUS_LABELS = {
 
 
 const generatePDF = (data) => {
+  // Retourne le HTML — la fenêtre est gérée par handleGenerate
+  return buildHTML(data);
+};
+
+const buildHTML = (data) => {
   const { period, generatedAt, stats, recentReports, topCitizens, byType, byRegion } = data;
 
   const periodLabel = { '7d': '7 derniers jours', '30d': '30 derniers jours', '90d': '90 derniers jours' }[period] || period;
@@ -126,12 +131,7 @@ const generatePDF = (data) => {
 </div>
 </body></html>`;
 
-  const win = window.open('', '_blank');
-  if (win) {
-    win.document.write(html);
-    win.document.close();
-    setTimeout(() => win.print(), 700);
-  }
+  return html;
 };
 
 export const AutoReport = () => {
@@ -141,6 +141,21 @@ export const AutoReport = () => {
   const [preview, setPreview] = useState(null);
 
   const handleGenerate = useCallback(async () => {
+    // ⚠️ Ouvrir la fenêtre IMMÉDIATEMENT dans le handler du clic,
+    // avant tout await — sinon le navigateur bloque comme popup
+    const win = window.open('', '_blank');
+    if (!win) {
+      alert('Veuillez autoriser les popups pour ce site (icône dans la barre d\'adresse).');
+      return;
+    }
+
+    // Afficher un écran de chargement dans la nouvelle fenêtre
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>ReMine — Chargement…</title>
+      <style>body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#f8fafc}
+      .box{text-align:center}.spinner{width:40px;height:40px;border:3px solid #e5e7eb;border-top-color:#16a34a;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px}
+      @keyframes spin{to{transform:rotate(360deg)}}.txt{color:#6b7280;font-size:14px}</style></head>
+      <body><div class="box"><div class="spinner"></div><div class="txt">Génération du rapport en cours…</div></div></body></html>`);
+
     setLoading(true);
     try {
       const token = localStorage.getItem('remine_admin_token');
@@ -151,9 +166,18 @@ export const AutoReport = () => {
       if (data.success) {
         setPreview(data.data);
         setLastGen(new Date());
-        generatePDF(data.data);
+        // Écrire le vrai contenu dans la fenêtre déjà ouverte
+        const html = generatePDF(data.data);
+        win.document.open();
+        win.document.write(html);
+        win.document.close();
+        setTimeout(() => { if (win && !win.closed) win.print(); }, 700);
+      } else {
+        win.close();
+        console.error('Erreur API rapport:', data.error);
       }
     } catch (e) {
+      win.close();
       console.error('Erreur génération rapport:', e);
     } finally {
       setLoading(false);

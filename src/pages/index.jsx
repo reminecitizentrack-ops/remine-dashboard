@@ -1,26 +1,28 @@
-// pages/index.jsx — Page de connexion redesignée
+// pages/index.jsx — Page de connexion ReMine
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { dashboardAPI } from '../services/api';
-import { LOGO_BASE64 }  from '../assets/logo';
 
 export default function LoginPage() {
-  const router  = useRouter();
-  const [email, setEmail]       = useState('');
+  const router = useRouter();
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPwd, setShowPwd]   = useState(false);
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState('');
-  const [apiOk, setApiOk]       = useState(null);
+  const [showPwd, setShowPwd] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [apiOk, setApiOk] = useState(null);
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    // Vérifier si déjà connecté
-    if (dashboardAPI.isAuthenticated()) {
+    const token = localStorage.getItem('remine_admin_token');
+    if (token) {
       router.push('/dashboard');
       return;
     }
-    // Tester la connexion backend
-    dashboardAPI.healthCheck().then(r => setApiOk(r.status === 'ok'));
+    setChecking(false);
+    dashboardAPI.healthCheck()
+      .then(r => setApiOk(r.success !== false))
+      .catch(() => setApiOk(false));
   }, []);
 
   const handleSubmit = async (e) => {
@@ -34,7 +36,13 @@ export default function LoginPage() {
         if (!['admin', 'moderator'].includes(role)) {
           setError('Accès réservé aux administrateurs.');
           dashboardAPI.logout();
+          setLoading(false);
           return;
+        }
+        // Stocker aussi dans un cookie pour le middleware
+        const token = result.data?.token || localStorage.getItem('remine_admin_token');
+        if (token) {
+          document.cookie = `remine_token=${token}; path=/; max-age=604800; SameSite=Lax`;
         }
         router.push('/dashboard');
       } else {
@@ -47,159 +55,466 @@ export default function LoginPage() {
     }
   };
 
+  if (checking) return null;
+
   return (
-    <div style={{ minHeight:'100vh', display:'flex', background:'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 50%, #bbf7d0 100%)' }}>
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
 
-      {/* Panneau gauche — branding */}
-      <div style={{ display:'none', flex:1, background:'linear-gradient(135deg, #16a34a, #166534)', padding:'48px', flexDirection:'column', justifyContent:'space-between' }}
-           className="lg:flex">
-        <div>
-          <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:48 }}>
-            <img src="/icon.png" alt="ReMine" style={{ width:48, height:48, borderRadius:12, objectFit:'cover' }}
-                 onError={e => { e.target.style.display='none'; }} />
-            <div>
-              <h1 style={{ color:'#fff', fontSize:24, fontWeight:800, margin:0 }}>ReMine</h1>
-              <p style={{ color:'rgba(255,255,255,0.7)', fontSize:13, margin:0 }}>Citizen Track</p>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+          font-family: 'DM Sans', sans-serif;
+          background: #0a0f0d;
+          color: #fff;
+          min-height: 100vh;
+        }
+
+        .page {
+          min-height: 100vh;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          position: relative;
+          overflow: hidden;
+        }
+
+        @media (max-width: 768px) {
+          .page { grid-template-columns: 1fr; }
+          .left-panel { display: none; }
+        }
+
+        /* ── LEFT PANEL ── */
+        .left-panel {
+          background: linear-gradient(145deg, #064e2a 0%, #0a1a10 60%, #000 100%);
+          padding: 60px 48px;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .left-panel::before {
+          content: '';
+          position: absolute;
+          top: -100px; left: -100px;
+          width: 500px; height: 500px;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(34,197,94,0.15) 0%, transparent 70%);
+        }
+
+        .left-panel::after {
+          content: '';
+          position: absolute;
+          bottom: -80px; right: -80px;
+          width: 400px; height: 400px;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(34,197,94,0.08) 0%, transparent 70%);
+        }
+
+        .brand {
+          position: relative;
+          z-index: 1;
+        }
+
+        .brand-logo {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          margin-bottom: 56px;
+        }
+
+        .logo-icon {
+          width: 48px; height: 48px;
+          background: linear-gradient(135deg, #22c55e, #16a34a);
+          border-radius: 14px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 24px;
+          box-shadow: 0 8px 24px rgba(34,197,94,0.3);
+        }
+
+        .brand-name {
+          font-family: 'Syne', sans-serif;
+          font-size: 22px;
+          font-weight: 800;
+          color: #fff;
+          letter-spacing: -0.5px;
+        }
+
+        .brand-sub {
+          font-size: 12px;
+          color: rgba(255,255,255,0.5);
+          font-weight: 400;
+          letter-spacing: 2px;
+          text-transform: uppercase;
+        }
+
+        .hero-title {
+          font-family: 'Syne', sans-serif;
+          font-size: 42px;
+          font-weight: 800;
+          line-height: 1.1;
+          color: #fff;
+          margin-bottom: 20px;
+          letter-spacing: -1px;
+        }
+
+        .hero-title span {
+          color: #22c55e;
+        }
+
+        .hero-desc {
+          font-size: 15px;
+          color: rgba(255,255,255,0.55);
+          line-height: 1.7;
+          max-width: 340px;
+        }
+
+        .stats-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+          position: relative;
+          z-index: 1;
+        }
+
+        .stat-card {
+          background: rgba(255,255,255,0.05);
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 16px;
+          padding: 20px;
+          backdrop-filter: blur(10px);
+        }
+
+        .stat-value {
+          font-family: 'Syne', sans-serif;
+          font-size: 28px;
+          font-weight: 800;
+          color: #22c55e;
+          margin-bottom: 4px;
+        }
+
+        .stat-label {
+          font-size: 12px;
+          color: rgba(255,255,255,0.45);
+          font-weight: 400;
+        }
+
+        /* ── RIGHT PANEL ── */
+        .right-panel {
+          background: #0d1410;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 40px 32px;
+          position: relative;
+        }
+
+        .right-panel::before {
+          content: '';
+          position: absolute;
+          top: 0; left: 0; right: 0; bottom: 0;
+          background: 
+            radial-gradient(ellipse at 20% 20%, rgba(34,197,94,0.04) 0%, transparent 50%),
+            radial-gradient(ellipse at 80% 80%, rgba(34,197,94,0.03) 0%, transparent 50%);
+          pointer-events: none;
+        }
+
+        .form-container {
+          width: 100%;
+          max-width: 400px;
+          position: relative;
+          z-index: 1;
+        }
+
+        .form-header {
+          margin-bottom: 40px;
+        }
+
+        .form-tag {
+          display: inline-block;
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 2.5px;
+          text-transform: uppercase;
+          color: #22c55e;
+          background: rgba(34,197,94,0.1);
+          border: 1px solid rgba(34,197,94,0.2);
+          border-radius: 20px;
+          padding: 5px 14px;
+          margin-bottom: 16px;
+        }
+
+        .form-title {
+          font-family: 'Syne', sans-serif;
+          font-size: 30px;
+          font-weight: 800;
+          color: #fff;
+          letter-spacing: -0.8px;
+          margin-bottom: 8px;
+        }
+
+        .form-subtitle {
+          font-size: 14px;
+          color: rgba(255,255,255,0.4);
+        }
+
+        /* Status */
+        .status-bar {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 14px;
+          border-radius: 10px;
+          font-size: 13px;
+          margin-bottom: 24px;
+        }
+
+        .status-bar.ok {
+          background: rgba(34,197,94,0.08);
+          border: 1px solid rgba(34,197,94,0.2);
+          color: #4ade80;
+        }
+
+        .status-bar.error {
+          background: rgba(239,68,68,0.08);
+          border: 1px solid rgba(239,68,68,0.2);
+          color: #f87171;
+        }
+
+        .status-dot {
+          width: 7px; height: 7px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+
+        /* Error */
+        .error-box {
+          background: rgba(239,68,68,0.08);
+          border: 1px solid rgba(239,68,68,0.2);
+          border-radius: 12px;
+          padding: 12px 16px;
+          margin-bottom: 20px;
+          color: #f87171;
+          font-size: 13px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        /* Inputs */
+        .field {
+          margin-bottom: 18px;
+        }
+
+        .field label {
+          display: block;
+          font-size: 12px;
+          font-weight: 600;
+          color: rgba(255,255,255,0.5);
+          letter-spacing: 1px;
+          text-transform: uppercase;
+          margin-bottom: 8px;
+        }
+
+        .input-wrap {
+          position: relative;
+        }
+
+        .input-wrap input {
+          width: 100%;
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 12px;
+          padding: 14px 16px;
+          font-size: 15px;
+          color: #fff;
+          font-family: 'DM Sans', sans-serif;
+          outline: none;
+          transition: all 0.2s;
+        }
+
+        .input-wrap input:focus {
+          border-color: rgba(34,197,94,0.5);
+          background: rgba(34,197,94,0.04);
+          box-shadow: 0 0 0 3px rgba(34,197,94,0.08);
+        }
+
+        .input-wrap input::placeholder {
+          color: rgba(255,255,255,0.2);
+        }
+
+        .toggle-pwd {
+          position: absolute;
+          right: 14px;
+          top: 50%;
+          transform: translateY(-50%);
+          background: none;
+          border: none;
+          color: rgba(255,255,255,0.3);
+          cursor: pointer;
+          font-size: 16px;
+          padding: 4px;
+          transition: color 0.2s;
+        }
+
+        .toggle-pwd:hover { color: rgba(255,255,255,0.6); }
+
+        /* Submit */
+        .submit-btn {
+          width: 100%;
+          padding: 15px;
+          background: linear-gradient(135deg, #22c55e, #16a34a);
+          color: #fff;
+          border: none;
+          border-radius: 12px;
+          font-size: 15px;
+          font-weight: 700;
+          font-family: 'Syne', sans-serif;
+          cursor: pointer;
+          letter-spacing: 0.3px;
+          transition: all 0.2s;
+          box-shadow: 0 4px 20px rgba(34,197,94,0.25);
+          margin-top: 8px;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .submit-btn:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: 0 8px 28px rgba(34,197,94,0.35);
+        }
+
+        .submit-btn:active:not(:disabled) {
+          transform: translateY(0);
+        }
+
+        .submit-btn:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+        }
+
+        .footer-note {
+          text-align: center;
+          font-size: 12px;
+          color: rgba(255,255,255,0.2);
+          margin-top: 28px;
+        }
+      `}</style>
+
+      <div className="page">
+
+        {/* LEFT */}
+        <div className="left-panel">
+          <div className="brand">
+            <div className="brand-logo">
+              <div className="logo-icon">🌍</div>
+              <div>
+                <div className="brand-name">ReMine</div>
+                <div className="brand-sub">Citizen Track</div>
+              </div>
             </div>
+            <h2 className="hero-title">
+              Tableau de bord<br /><span>administrateur</span>
+            </h2>
+            <p className="hero-desc">
+              Gérez les signalements environnementaux, analysez les données et coordonnez les interventions en temps réel.
+            </p>
           </div>
 
-          <h2 style={{ color:'#fff', fontSize:36, fontWeight:800, lineHeight:1.2, marginBottom:16 }}>
-            Tableau de bord<br />administrateur
-          </h2>
-          <p style={{ color:'rgba(255,255,255,0.8)', fontSize:16, lineHeight:1.6 }}>
-            Gérez les signalements environnementaux,<br />
-            analysez les données et coordonnez<br />
-            les interventions en temps réel.
-          </p>
-        </div>
-
-        {/* Stats */}
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
-          {[
-            { label:'Signalements gérés', value:'12+' },
-            { label:'Taux de résolution', value:'17%' },
-            { label:'Citoyens inscrits', value:'1' },
-            { label:'Zones surveillées', value:'Thiès' },
-          ].map(s => (
-            <div key={s.label} style={{ background:'rgba(255,255,255,0.15)', borderRadius:12, padding:'16px 20px' }}>
-              <p style={{ color:'#fff', fontSize:22, fontWeight:800, margin:0 }}>{s.value}</p>
-              <p style={{ color:'rgba(255,255,255,0.7)', fontSize:12, margin:0 }}>{s.label}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Panneau droit — formulaire */}
-      <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', padding:'32px 24px' }}>
-        <div style={{ width:'100%', maxWidth:420 }}>
-
-          {/* Logo mobile */}
-          <div style={{ textAlign:'center', marginBottom:40 }}>
-            <div style={{ display:'inline-flex', alignItems:'center', gap:12, marginBottom:8 }}>
-              <img src={LOGO_BASE64} alt="ReMine"
-                   style={{ width:60, height:60, objectFit:'contain' }} />
-              <div style={{ textAlign:'left' }}>
-                <h1 style={{ margin:0, fontSize:22, fontWeight:900, color:'#111' }}>ReMine</h1>
-                <p style={{ margin:0, fontSize:12, color:'#16a34a', fontWeight:600 }}>Citizen Track</p>
+          <div className="stats-grid">
+            {[
+              { label: 'Signalements', value: '12+' },
+              { label: 'Résolution', value: '17%' },
+              { label: 'Citoyens', value: '1' },
+              { label: 'Zone', value: 'Thiès' },
+            ].map(s => (
+              <div key={s.label} className="stat-card">
+                <div className="stat-value">{s.value}</div>
+                <div className="stat-label">{s.label}</div>
               </div>
-            </div>
-            <p style={{ color:'#6b7280', fontSize:14, margin:0 }}>Connectez-vous à votre espace admin</p>
+            ))}
           </div>
+        </div>
 
-          {/* Statut API */}
-          {apiOk !== null && (
-            <div style={{
-              display:'flex', alignItems:'center', gap:8, padding:'8px 14px',
-              background: apiOk ? '#f0fdf4' : '#fef2f2',
-              border: `1px solid ${apiOk ? '#86efac' : '#fca5a5'}`,
-              borderRadius:10, marginBottom:20, fontSize:13,
-              color: apiOk ? '#166534' : '#991b1b',
-            }}>
-              <span style={{ width:8, height:8, borderRadius:'50%', background: apiOk ? '#22c55e' : '#ef4444', flexShrink:0 }} />
-              {apiOk ? 'Serveur connecté' : 'Serveur inaccessible — vérifiez le backend'}
+        {/* RIGHT */}
+        <div className="right-panel">
+          <div className="form-container">
+
+            <div className="form-header">
+              <div className="form-tag">Admin Access</div>
+              <h1 className="form-title">Connexion</h1>
+              <p className="form-subtitle">Accédez à votre espace administrateur</p>
             </div>
-          )}
 
-          {/* Erreur */}
-          {error && (
-            <div style={{
-              background:'#fef2f2', border:'1px solid #fecaca', borderRadius:12,
-              padding:'12px 16px', marginBottom:20, color:'#991b1b', fontSize:14,
-              display:'flex', alignItems:'center', gap:8,
-            }}>
-              <span>⚠️</span> {error}
-            </div>
-          )}
-
-          {/* Formulaire */}
-          <form onSubmit={handleSubmit}>
-            <div style={{ marginBottom:16 }}>
-              <label style={{ display:'block', fontSize:13, fontWeight:600, color:'#374151', marginBottom:6 }}>
-                Adresse email
-              </label>
-              <div style={{ position:'relative' }}>
-                <span style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', fontSize:16 }}>📧</span>
-                <input
-                  type="email" value={email} onChange={e => setEmail(e.target.value)}
-                  placeholder="admin@remine.sn" required
-                  style={{
-                    width:'100%', boxSizing:'border-box',
-                    padding:'12px 14px 12px 42px',
-                    border:'1.5px solid #e5e7eb', borderRadius:12,
-                    fontSize:15, color:'#111', outline:'none',
-                    transition:'border-color 0.15s', background:'#fafafa',
-                  }}
-                  onFocus={e => e.target.style.borderColor='#16a34a'}
-                  onBlur={e => e.target.style.borderColor='#e5e7eb'}
-                />
+            {apiOk !== null && (
+              <div className={`status-bar ${apiOk ? 'ok' : 'error'}`}>
+                <div className="status-dot" style={{ background: apiOk ? '#22c55e' : '#ef4444' }} />
+                {apiOk ? 'Serveur connecté' : 'Serveur inaccessible'}
               </div>
-            </div>
+            )}
 
-            <div style={{ marginBottom:28 }}>
-              <label style={{ display:'block', fontSize:13, fontWeight:600, color:'#374151', marginBottom:6 }}>
-                Mot de passe
-              </label>
-              <div style={{ position:'relative' }}>
-                <span style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', fontSize:16 }}>🔐</span>
-                <input
-                  type={showPwd ? 'text' : 'password'} value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••" required
-                  style={{
-                    width:'100%', boxSizing:'border-box',
-                    padding:'12px 44px 12px 42px',
-                    border:'1.5px solid #e5e7eb', borderRadius:12,
-                    fontSize:15, color:'#111', outline:'none',
-                    transition:'border-color 0.15s', background:'#fafafa',
-                  }}
-                  onFocus={e => e.target.style.borderColor='#16a34a'}
-                  onBlur={e => e.target.style.borderColor='#e5e7eb'}
-                />
-                <button type="button" onClick={() => setShowPwd(!showPwd)}
-                        style={{ position:'absolute', right:14, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', fontSize:16, color:'#9ca3af', padding:0 }}>
-                  {showPwd ? '🙈' : '👁️'}
-                </button>
+            {error && (
+              <div className="error-box">
+                <span>⚠️</span> {error}
               </div>
-            </div>
+            )}
 
-            <button type="submit" disabled={loading}
-                    style={{
-                      width:'100%', padding:'14px',
-                      background: loading ? '#86efac' : 'linear-gradient(135deg, #16a34a, #166534)',
-                      color:'#fff', border:'none', borderRadius:12,
-                      fontSize:16, fontWeight:700, cursor: loading ? 'not-allowed' : 'pointer',
-                      boxShadow: loading ? 'none' : '0 4px 12px rgba(22,163,74,0.35)',
-                      transition:'all 0.2s',
-                    }}>
-              {loading ? '⏳ Connexion...' : '🚀 Se connecter'}
-            </button>
-          </form>
+            <form onSubmit={handleSubmit}>
+              <div className="field">
+                <label>Adresse email</label>
+                <div className="input-wrap">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="admin@remine.sn"
+                    required
+                    autoComplete="email"
+                  />
+                </div>
+              </div>
 
-          <p style={{ textAlign:'center', fontSize:12, color:'#9ca3af', marginTop:24 }}>
-            ReMine Citizen Track v1.0 — Tableau de bord administrateur
-          </p>
+              <div className="field">
+                <label>Mot de passe</label>
+                <div className="input-wrap">
+                  <input
+                    type={showPwd ? 'text' : 'password'}
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    autoComplete="current-password"
+                    style={{ paddingRight: '44px' }}
+                  />
+                  <button
+                    type="button"
+                    className="toggle-pwd"
+                    onClick={() => setShowPwd(!showPwd)}
+                  >
+                    {showPwd ? '🙈' : '👁️'}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="submit-btn"
+                disabled={loading}
+              >
+                {loading ? '⏳ Connexion en cours...' : '🚀 Se connecter'}
+              </button>
+            </form>
+
+            <p className="footer-note">
+              ReMine Citizen Track v1.0 — Espace administrateur
+            </p>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
