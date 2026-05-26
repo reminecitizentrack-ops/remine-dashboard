@@ -41,21 +41,12 @@ const formatFCFA = (euros) => {
 };
 
 const TABS = [
-  { id: 'overview',     label: 'Aperçu',         icon: '⬡', desc: 'Vue d\'ensemble'         },
-  { id: 'reports',      label: 'Signalements',    icon: '📋', desc: 'Gérer les signalements'  },
-  { id: 'map',          label: 'Carte',           icon: '🗺', desc: 'Visualisation géo'       },
-  { id: 'ai-insights',  label: 'Insights IA',     icon: '✦', desc: 'Analyses intelligentes'  },
-  { id: 'analytics',    label: 'Analytics',       icon: '↗', desc: 'Statistiques avancées'   },
-  { id: 'valorization', label: 'Valorisation',    icon: '◈', desc: 'Projets de valorisation'  },
-  { id: 'users',        label: 'Utilisateurs',    icon: '◉', desc: 'Gestion des citoyens'    },
-  { id: 'audit',        label: 'Journal audit',   icon: '🗑️', desc: 'Historique des suppressions' },
-  { id: 'regions',      label: 'Régions',         icon: '🗺️', desc: 'Stats par région'             },
-  { id: 'messaging',    label: 'Messagerie',      icon: '✉️',  desc: 'Messages aux citoyens'        },
-  { id: 'autoreport',   label: 'Rapport auto',    icon: '📄',  desc: 'Générer un rapport PDF'       },
-  { id: 'tags',         label: 'Tags',            icon: '🏷️',  desc: 'Gestion des tags'             },  // ← NOUVEAU
-  { id: 'stats-cards',  label: 'Statistiques',    icon: '📊',  desc: 'Vue cartes stats'             },  // ← NOUVEAU
-  { id: 'metrics',      label: 'Métriques',       icon: '📈',  desc: 'Métriques détaillées'         },  // ← NOUVEAU
-  { id: 'history',      label: 'Historique',      icon: '⏱️',  desc: 'Historique des actions'       },  // ← NOUVEAU
+  { id: 'overview',     label: 'Aperçu',       icon: '⬡', desc: 'Vue d\'ensemble'          },
+  { id: 'reports',      label: 'Signalements', icon: '📋', desc: 'Signalements & carte'     },
+  { id: 'analyse',      label: 'Analyse',      icon: '✦', desc: 'IA, stats & régions'      },
+  { id: 'valorization', label: 'Valorisation', icon: '◈', desc: 'Projets de valorisation'  },
+  { id: 'citoyens',     label: 'Citoyens',     icon: '◉', desc: 'Utilisateurs & messagerie'},
+  { id: 'admin',        label: 'Administration', icon: '🗂️', desc: 'Audit, tags & rapports' },
 ];
 
 // ==================== SOUS-COMPOSANTS ====================
@@ -284,6 +275,33 @@ const ExportDropdown = ({ onCSV, onPDF, disabled }) => {
   );
 };
 
+// ==================== COMPOSANT SOUS-ONGLETS ====================
+
+const TabGroup = ({ tabs, children }) => {
+  const [active, setActive] = useState(tabs[0].id);
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">
+        {tabs.map(t => (
+          <button
+            key={t.id}
+            onClick={() => setActive(t.id)}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              active === t.id
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <span>{t.icon}</span>
+            <span>{t.label}</span>
+          </button>
+        ))}
+      </div>
+      <div>{children(active)}</div>
+    </div>
+  );
+};
+
 // ==================== DASHBOARD PRINCIPAL ====================
 
 export default function Dashboard() {
@@ -439,7 +457,7 @@ export default function Dashboard() {
       }
       if (e.key === 'Escape') { setShowSearch(false); setSearchQuery(''); return; }
       if (e.key === 'r' && !e.metaKey && !e.ctrlKey) { refetchAll(); return; }
-      const tabIds = ['overview','reports','map','ai-insights','analytics','valorization','users','audit','regions','messaging','autoreport','tags','stats-cards','metrics','history'];
+      const tabIds = ['overview','reports','analyse','valorization','citoyens','admin'];
       const idx = parseInt(e.key) - 1;
       if (idx >= 0 && idx < tabIds.length) handleTabChange(tabIds[idx]);
     };
@@ -682,178 +700,150 @@ export default function Dashboard() {
 
       case 'reports':
         return (
-          <ReportsTable
-            reports={memoizedReports}
-            onStatusUpdate={handleStatusUpdate}
-            onRefresh={refetchAll}
-            onExportPDF={async ({ reports: reps, selectedReport: sel }) => {
-              setPdfSelectedReport(sel || null);
-              if (sel) {
-                try {
-                  const id = sel._id || sel.id;
-                  const res = await dashboardAPI.getComments(id);
-                  setPdfReportComments(res?.data?.comments || []);
-                } catch (e) { setPdfReportComments([]); }
-              } else {
-                setPdfReportComments([]);
-              }
-              try {
-                const res = await dashboardAPI.getDeletionLogs({ limit: 500 });
-                if (res?.success) {
-                  setDeletionLogsForPDF(res.data?.logs || []);
-                  setDeletionStatsForPDF(res.data?.stats || []);
-                }
-              } catch (e) {}
-              setShowPDFModal(true);
+          <TabGroup
+            tabs={[
+              { id: 'list', label: 'Liste', icon: '📋' },
+              { id: 'map',  label: 'Carte', icon: '🗺️' },
+            ]}
+          >
+            {(sub) => sub === 'map'
+              ? <ReportsMap reports={memoizedReports} onReportClick={(r) => { setSelectedReport(r); }} />
+              : <ReportsTable
+                  reports={memoizedReports}
+                  onStatusUpdate={handleStatusUpdate}
+                  onRefresh={refetchAll}
+                  onExportPDF={async ({ reports: reps, selectedReport: sel }) => {
+                    setPdfSelectedReport(sel || null);
+                    if (sel) {
+                      try {
+                        const id = sel._id || sel.id;
+                        const res = await dashboardAPI.getComments(id);
+                        setPdfReportComments(res?.data?.comments || []);
+                      } catch (e) { setPdfReportComments([]); }
+                    } else {
+                      setPdfReportComments([]);
+                    }
+                    try {
+                      const res = await dashboardAPI.getDeletionLogs({ limit: 500 });
+                      if (res?.success) {
+                        setDeletionLogsForPDF(res.data?.logs || []);
+                        setDeletionStatsForPDF(res.data?.stats || []);
+                      }
+                    } catch (e) {}
+                    setShowPDFModal(true);
+                  }}
+                />
+            }
+          </TabGroup>
+        );
+
+      case 'analyse':
+        return (
+          <TabGroup
+            tabs={[
+              { id: 'ia',        label: 'Insights IA', icon: '✦' },
+              { id: 'analytics', label: 'Analytics',   icon: '↗' },
+              { id: 'stats',     label: 'Statistiques',icon: '📊' },
+              { id: 'regions',   label: 'Régions',     icon: '🗺️' },
+            ]}
+          >
+            {(sub) => {
+              if (sub === 'ia') return (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <AIAnalysisPanel report={selectedReport || memoizedReports[0]} />
+                    <AIPatternDetector reports={memoizedReports} patterns={aiPatterns} isLoading={aiLoading} />
+                  </div>
+                  <PredictiveInsights reports={memoizedReports} patterns={aiPatterns} />
+                </div>
+              );
+              if (sub === 'analytics') return (
+                <AdvancedAnalytics stats={memoizedStats} reports={memoizedReports} analytics={memoizedAnalytics} />
+              );
+              if (sub === 'regions') return (
+                <RegionDashboard reports={memoizedReports} />
+              );
+              // stats (StatsCards + MetricCards fusionnés)
+              return (
+                <div className="space-y-8">
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                    <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                      <span className="text-2xl">📊</span> Vue globale des statistiques
+                    </h2>
+                    <StatsCards data={statsCardsData} />
+                  </div>
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                    <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+                      <span className="text-2xl">📈</span> Métriques d'impact
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <MetricCard title="Impact CO₂"      value={`${impactData.co2Saved} t`}                            change={+12} icon="🌍" color="emerald" />
+                      <MetricCard title="Eau protégée"    value={`${(impactData.waterProtected / 1000).toFixed(0)}k L`} change={+8}  icon="💧" color="blue"    />
+                      <MetricCard title="Déchets traités" value={`${impactData.wasteProcessed} t`}                      change={+15} icon="♻️" color="amber"   />
+                      <MetricCard title="Revenus générés" value={formatFCFA(impactData.revenueGenerated / EUR_TO_FCFA)} change={+5}  icon="💰" color="purple"  />
+                      <MetricCard title="Emplois créés"   value={impactData.jobsCreated}                                change={+3}  icon="👔" color="emerald" />
+                      <MetricCard title="Citoyens engagés"value={impactData.citizensEngaged}                            change={+22} icon="🤝" color="blue"    />
+                    </div>
+                  </div>
+                </div>
+              );
             }}
-          />
+          </TabGroup>
         );
-
-      case 'map':
-        return (
-          <ReportsMap reports={memoizedReports} onReportClick={(r) => { setSelectedReport(r); setActiveTab('reports'); }} />
-        );
-
-      case 'ai-insights':
-        return (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <AIAnalysisPanel report={selectedReport || memoizedReports[0]} />
-              <AIPatternDetector reports={memoizedReports} patterns={aiPatterns} isLoading={aiLoading} />
-            </div>
-            <PredictiveInsights reports={memoizedReports} patterns={aiPatterns} />
-          </div>
-        );
-
-      case 'analytics':
-        return <AdvancedAnalytics stats={memoizedStats} reports={memoizedReports} analytics={memoizedAnalytics} />;
 
       case 'valorization':
         return <ValorizationProjects />;
 
-      case 'users':
-        return <UsersManagement users={memoizedUsers} onNotify={notify} />;
-
-      case 'audit':
-        return <DeletionLogs />;
-
-      case 'regions':
-        return <RegionDashboard reports={memoizedReports} />;
-
-      case 'autoreport':
-        return <AutoReport />;
-
-      case 'messaging':
-        return <Messaging users={memoizedUsers} reports={memoizedReports} />;
-
-      // ==================== NOUVEAUX ONGLETS INTÉGRÉS ====================
-
-      case 'tags':
+      case 'citoyens':
         return (
-          <div className="space-y-6">
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <span className="text-2xl">🏷️</span>
-                Gestion des tags
-              </h2>
-              <p className="text-sm text-gray-500 mb-6">
-                Gérez les tags pour catégoriser et filtrer les signalements.
-              </p>
-              <TagsManager reports={memoizedReports} onUpdate={refetchAll} />
-            </div>
-          </div>
+          <TabGroup
+            tabs={[
+              { id: 'users',     label: 'Utilisateurs', icon: '◉' },
+              { id: 'messaging', label: 'Messagerie',   icon: '✉️' },
+            ]}
+          >
+            {(sub) => sub === 'messaging'
+              ? <Messaging users={memoizedUsers} reports={memoizedReports} />
+              : <UsersManagement users={memoizedUsers} onNotify={notify} />
+            }
+          </TabGroup>
         );
 
-      case 'stats-cards':
+      case 'admin':
         return (
-          <div className="space-y-6">
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <span className="text-2xl">📊</span>
-                Vue globale des statistiques
-              </h2>
-              <p className="text-sm text-gray-500 mb-6">
-                Visualisation synthétique de tous les indicateurs clés.
-              </p>
-              <StatsCards data={statsCardsData} />
-            </div>
-          </div>
+          <TabGroup
+            tabs={[
+              { id: 'audit',      label: 'Journal audit', icon: '🗑️' },
+              { id: 'history',    label: 'Historique',    icon: '⏱️' },
+              { id: 'tags',       label: 'Tags',          icon: '🏷️' },
+              { id: 'autoreport', label: 'Rapport auto',  icon: '📄' },
+            ]}
+          >
+            {(sub) => {
+              if (sub === 'history') return (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                  <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <span className="text-2xl">⏱️</span> Historique des actions
+                  </h2>
+                  <ActionHistory />
+                </div>
+              );
+              if (sub === 'tags') return (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                  <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <span className="text-2xl">🏷️</span> Gestion des tags
+                  </h2>
+                  <p className="text-sm text-gray-500 mb-6">Gérez les tags pour catégoriser et filtrer les signalements.</p>
+                  <TagsManager reports={memoizedReports} onUpdate={refetchAll} />
+                </div>
+              );
+              if (sub === 'autoreport') return <AutoReport />;
+              return <DeletionLogs />;
+            }}
+          </TabGroup>
         );
 
-      case 'metrics':
-        return (
-          <div className="space-y-6">
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <span className="text-2xl">📈</span>
-                Métriques détaillées
-              </h2>
-              <p className="text-sm text-gray-500 mb-6">
-                Mesures précises d'impact et de performance.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <MetricCard
-                  title="Impact CO₂"
-                  value={`${impactData.co2Saved} t`}
-                  change={+12}
-                  icon="🌍"
-                  color="emerald"
-                />
-                <MetricCard
-                  title="Eau protégée"
-                  value={`${(impactData.waterProtected / 1000).toFixed(0)}k L`}
-                  change={+8}
-                  icon="💧"
-                  color="blue"
-                />
-                <MetricCard
-                  title="Déchets traités"
-                  value={`${impactData.wasteProcessed} t`}
-                  change={+15}
-                  icon="♻️"
-                  color="amber"
-                />
-                <MetricCard
-                  title="Revenus générés"
-                  value={formatFCFA(impactData.revenueGenerated / EUR_TO_FCFA)}
-                  change={+5}
-                  icon="💰"
-                  color="purple"
-                />
-                <MetricCard
-                  title="Emplois créés"
-                  value={impactData.jobsCreated}
-                  change={+3}
-                  icon="👔"
-                  color="emerald"
-                />
-                <MetricCard
-                  title="Citoyens engagés"
-                  value={impactData.citizensEngaged}
-                  change={+22}
-                  icon="🤝"
-                  color="blue"
-                />
-              </div>
-            </div>
-          </div>
-        );
 
-      case 'history':
-        return (
-          <div className="space-y-6">
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <span className="text-2xl">⏱️</span>
-                Historique des actions
-              </h2>
-              <p className="text-sm text-gray-500 mb-6">
-                Toutes les actions effectuées sur la plateforme.
-              </p>
-              <ActionHistory />
-            </div>
-          </div>
-        );
 
       default:
         return (
@@ -1182,7 +1172,7 @@ export default function Dashboard() {
                       <p className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider bg-gray-50">Utilisateurs</p>
                       {searchResults.users.map(u => (
                         <button key={u._id || u.id}
-                                onClick={() => { handleTabChange('users'); setShowSearch(false); setSearchQuery(''); }}
+                                onClick={() => { handleTabChange('citoyens'); setShowSearch(false); setSearchQuery(''); }}
                                 className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3">
                           <div className="w-8 h-8 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
                             {u.firstName?.[0]}{u.lastName?.[0]}
@@ -1202,7 +1192,7 @@ export default function Dashboard() {
             <div className="px-4 py-2 border-t border-gray-100 bg-gray-50 flex gap-4 text-xs text-gray-400">
               <span><kbd className="font-mono bg-white border border-gray-200 rounded px-1">↵</kbd> ouvrir</span>
               <span><kbd className="font-mono bg-white border border-gray-200 rounded px-1">Esc</kbd> fermer</span>
-              <span><kbd className="font-mono bg-white border border-gray-200 rounded px-1">1-8</kbd> onglets</span>
+              <span><kbd className="font-mono bg-white border border-gray-200 rounded px-1">1-6</kbd> onglets</span>
             </div>
           </div>
         </div>
