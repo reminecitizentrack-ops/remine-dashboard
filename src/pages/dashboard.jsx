@@ -89,6 +89,7 @@ const StatPill = ({ label, value, color = 'gray' }) => {
 
 const NavItem = ({ tab, active, onClick, badge, collapsed = false }) => {
   const [hovered, setHovered] = React.useState(false);
+  const isDark = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
   return (
     <button
       onClick={() => onClick(tab.id)}
@@ -108,8 +109,10 @@ const NavItem = ({ tab, active, onClick, badge, collapsed = false }) => {
         border: 'none',
         cursor: 'pointer',
         justifyContent: collapsed ? 'center' : 'flex-start',
-        background: active ? 'linear-gradient(135deg, #ecfdf5, #d1fae5)' : hovered ? '#f9fafb' : 'transparent',
-        color: active ? '#059669' : hovered ? '#374151' : '#6b7280',
+        background: active
+          ? isDark ? 'rgba(16,185,129,0.15)' : 'linear-gradient(135deg, #ecfdf5, #d1fae5)'
+          : hovered ? (isDark ? 'rgba(255,255,255,0.06)' : '#f9fafb') : 'transparent',
+        color: active ? '#10b981' : hovered ? (isDark ? '#e5e7eb' : '#374151') : (isDark ? '#9ca3af' : '#6b7280'),
         boxShadow: active ? '0 1px 4px rgba(5,150,105,0.12)' : 'none',
         transition: 'all 0.18s cubic-bezier(0.4,0,0.2,1)',
         position: 'relative',
@@ -281,15 +284,15 @@ const TabGroup = ({ tabs, children }) => {
   const [active, setActive] = useState(tabs[0].id);
   return (
     <div className="space-y-4">
-      <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">
+      <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl w-fit">
         {tabs.map(t => (
           <button
             key={t.id}
             onClick={() => setActive(t.id)}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
               active === t.id
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
             }`}
           >
             <span>{t.icon}</span>
@@ -800,7 +803,7 @@ export default function Dashboard() {
                     <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                       <span className="text-2xl">📊</span> Vue globale des statistiques
                     </h2>
-                    <StatsCards data={statsCardsData} />
+                    <StatsCards stats={memoizedStats} />
                   </div>
                   <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
                     <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
@@ -890,7 +893,7 @@ export default function Dashboard() {
   const currentTab = TABS.find(t => t.id === activeTab);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex font-sans">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex font-sans">
 
       {/* ===== SIDEBAR MOBILE OVERLAY ===== */}
       {sidebarOpen && (
@@ -916,13 +919,13 @@ export default function Dashboard() {
       )}
 
       {/* ===== SIDEBAR DESKTOP ===== */}
-      <aside className={`hidden lg:flex flex-col bg-white border-r border-gray-100 flex-shrink-0 transition-all duration-200 ${collapsed ? 'w-16' : 'w-60 xl:w-64'}`}>
-        <div className="flex items-center justify-between px-3 py-4 border-b border-gray-100">
+      <aside className={`hidden lg:flex flex-col bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 flex-shrink-0 transition-all duration-200 ${collapsed ? 'w-16' : 'w-60 xl:w-64'}`}>
+        <div className="flex items-center justify-between px-3 py-4 border-b border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-2 min-w-0">
             <img src={LOGO_BASE64} alt="ReMine" className="w-9 h-9 object-contain flex-shrink-0" />
             {!collapsed && (
               <div className="min-w-0">
-                <p className="font-bold text-gray-900 text-sm leading-tight">ReMine</p>
+                <p className="font-bold text-gray-900 dark:text-white text-sm leading-tight">ReMine</p>
                 <p className="text-xs text-emerald-600 font-medium">Citizen Track</p>
               </div>
             )}
@@ -942,7 +945,7 @@ export default function Dashboard() {
         </nav>
 
         {!collapsed && (
-          <div className="px-4 py-4 border-t border-gray-100 bg-gray-50">
+          <div className="px-4 py-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Résumé</p>
             <StatPill label="Signalements actifs"
               value={
@@ -979,7 +982,7 @@ export default function Dashboard() {
           </button>
         </div>
 
-        <div className="px-2 py-3 border-t border-gray-100">
+        <div className="px-2 py-3 border-t border-gray-100 dark:border-gray-800">
           <button
             onClick={() => dashboardAPI.logout()}
             title="Déconnexion"
@@ -994,7 +997,7 @@ export default function Dashboard() {
       {/* ===== CONTENU PRINCIPAL ===== */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
-        <header className="bg-white border-b border-gray-100 px-4 lg:px-6 py-3.5 flex items-center justify-between gap-4 flex-shrink-0">
+        <header className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-4 lg:px-6 py-3.5 flex items-center justify-between gap-4 flex-shrink-0">
           <div className="flex items-center gap-3">
             <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 rounded-lg text-gray-400 hover:bg-gray-100">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1002,8 +1005,8 @@ export default function Dashboard() {
               </svg>
             </button>
             <div>
-              <h1 className="text-base font-bold text-gray-900">{currentTab?.label}</h1>
-              <p className="text-xs text-gray-400 hidden sm:block">{currentTab?.desc}</p>
+              <h1 className="text-base font-bold text-gray-900 dark:text-white">{currentTab?.label}</h1>
+              <p className="text-xs text-gray-400 dark:text-gray-500 hidden sm:block">{currentTab?.desc}</p>
             </div>
           </div>
 
@@ -1128,14 +1131,14 @@ export default function Dashboard() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-950">
           <div className="p-4 lg:p-6 max-w-screen-2xl mx-auto">
             <Toast toast={toast} onClose={() => setToast(t => ({ ...t, show: false }))} />
             {renderContent()}
           </div>
         </main>
 
-        <footer className="flex-shrink-0 border-t border-gray-100 bg-white px-6 py-2.5 flex items-center justify-between text-xs text-gray-400">
+        <footer className="flex-shrink-0 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 px-6 py-2.5 flex items-center justify-between text-xs text-gray-400 dark:text-gray-500">
           <span>ReMine Citizen Track — {memoizedStats?.overview?.totalReports || 0} signalements · {memoizedStats?.overview?.totalUsers || 0} citoyens</span>
           <span>Dernière sync : <FooterClock /></span>
         </footer>
