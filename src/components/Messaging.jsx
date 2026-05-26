@@ -1,12 +1,27 @@
 // components/Messaging.jsx — Messagerie admin → citoyens
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { dashboardAPI } from '../services/api';
+
+// ==================== CONSTANTES ====================
+
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('fr-FR', {
   day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
 }) : '—';
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
+const fmtTimeAgo = (d) => {
+  if (!d) return '—';
+  const diff = Date.now() - new Date(d).getTime();
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  
+  if (minutes < 1) return 'À l\'instant';
+  if (minutes < 60) return `il y a ${minutes}min`;
+  if (hours < 24) return `il y a ${hours}h`;
+  return `il y a ${days}j`;
+};
 
 const _af = async (url, opts = {}) => {
   const t = typeof window !== 'undefined' ? localStorage.getItem('remine_admin_token') : '';
@@ -21,7 +36,7 @@ const _af = async (url, opts = {}) => {
   return r.json();
 };
 
-// ==================== NOUVEAU MESSAGE ====================
+// ==================== NOUVEAU MESSAGE MODAL ====================
 
 const NewMessageModal = ({ users, reports, onClose, onSent }) => {
   const [to, setTo] = useState('');
@@ -50,12 +65,8 @@ const NewMessageModal = ({ users, reports, onClose, onSent }) => {
     setError('');
     
     try {
-      const res = await fetch(`${API}/messages`, {
+      const data = await _af(`${API}/messages`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem("remine_admin_token")}`,
-          'Content-Type': 'application/json'
-        },
         body: JSON.stringify({ 
           toUserId: to, 
           subject: subject.trim(), 
@@ -64,20 +75,23 @@ const NewMessageModal = ({ users, reports, onClose, onSent }) => {
         }),
       });
       
-      const data = await res.json();
-      
       if (data.success) {
         onSent(data.data);
         onClose();
       } else {
-        setError(data.error || "Erreur lors de l'envoi");
+        setError(data.error || 'Erreur lors de l\'envoi');
       }
-    } catch (err) {
+    } catch {
       setError('Erreur de connexion au serveur');
     } finally {
       setSending(false);
     }
   };
+
+  const citizens = useMemo(() => 
+    users.filter(u => u.role === 'citizen'), 
+    [users]
+  );
 
   return (
     <>
@@ -105,7 +119,7 @@ const NewMessageModal = ({ users, reports, onClose, onSent }) => {
                 className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
               >
                 <option value="">— Choisir un citoyen —</option>
-                {users.filter(u => u.role === 'citizen').map(u => (
+                {citizens.map(u => (
                   <option key={u._id || u.id} value={u._id || u.id}>
                     {u.firstName} {u.lastName} — {u.email}
                   </option>
@@ -115,7 +129,7 @@ const NewMessageModal = ({ users, reports, onClose, onSent }) => {
 
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                Lié au signalement (optionnel)
+                Lié au signalement <span className="font-normal text-gray-400">(optionnel)</span>
               </label>
               <select 
                 value={reportId} 
@@ -125,7 +139,7 @@ const NewMessageModal = ({ users, reports, onClose, onSent }) => {
                 <option value="">— Aucun signalement —</option>
                 {reports.slice(0, 20).map(r => (
                   <option key={r._id || r.id} value={r._id || r.id}>
-                    #{(r._id || r.id || '').slice(-8)} — {(r.type || '').replace(/_/g, ' ')}
+                    #{((r._id || r.id) || '').slice(-8)} — {(r.type || '').replace(/_/g, ' ')}
                   </option>
                 ))}
               </select>
@@ -194,7 +208,7 @@ export const Messaging = ({ users = [], reports = [] }) => {
   const loadMessages = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await _af(`${API}/messages/sent`);
+      const data = await _af(`${API}/messages/all`);
       if (data.success) setMessages(data.data || []);
     } catch (e) { 
       console.error('Erreur chargement messages:', e); 
@@ -207,17 +221,44 @@ export const Messaging = ({ users = [], reports = [] }) => {
     loadMessages(); 
   }, [loadMessages]);
 
+  // Polling toutes les 30 secondes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadMessages();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [loadMessages]);
+
+  // Marquer comme lu quand sélectionné
+  useEffect(() => {
+    const markAsRead = async () => {
+      if (selected && !selected.read) {
+        try {
+          await _af(`${API}/messages/${selected._id}/read`, { method: 'PUT' });
+          setMessages(prev => prev.map(m => 
+            m._id === selected._id ? { ...m, read: true, readAt: new Date() } : m
+          ));
+          setSelected(prev => ({ ...prev, read: true, readAt: new Date() }));
+        } catch (e) {
+          console.error('Erreur marquage lu:', e);
+        }
+      }
+    };
+    markAsRead();
+  }, [selected]);
+
   const handleSent = (msg) => {
     setMessages(prev => [msg, ...prev]);
   };
 
-  // Mémoïsation des filtres pour performance
+  // Statistiques des messages
   const messageCounts = useMemo(() => ({
     all: messages.length,
     unread: messages.filter(m => !m.read).length,
     read: messages.filter(m => m.read).length
   }), [messages]);
 
+  // Filtrage
   const filtered = useMemo(() => {
     if (filter === 'read') return messages.filter(m => m.read);
     if (filter === 'unread') return messages.filter(m => !m.read);
@@ -237,7 +278,7 @@ export const Messaging = ({ users = [], reports = [] }) => {
 
       {/* Header */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-xl">✉️</div>
             <div>
@@ -257,9 +298,9 @@ export const Messaging = ({ users = [], reports = [] }) => {
         {/* Filtres */}
         <div className="flex gap-2">
           {[
-            { key: 'all', label: `Tous (${messageCounts.all})` },
-            { key: 'unread', label: `Non lus (${messageCounts.unread})` },
-            { key: 'read', label: `Lus (${messageCounts.read})` },
+            { key: 'all', label: `📋 Tous (${messageCounts.all})` },
+            { key: 'unread', label: `🔴 Non lus (${messageCounts.unread})` },
+            { key: 'read', label: `✅ Lus (${messageCounts.read})` },
           ].map(f => (
             <button 
               key={f.key} 
@@ -287,10 +328,12 @@ export const Messaging = ({ users = [], reports = [] }) => {
           ) : filtered.length === 0 ? (
             <div className="text-center py-12">
               <div className="text-4xl mb-2">📭</div>
-              <p className="text-gray-400 text-sm">Aucun message</p>
+              <p className="text-gray-400 text-sm">
+                {filter !== 'all' ? 'Aucun message pour ce filtre' : 'Aucun message'}
+              </p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-50">
+            <div className="divide-y divide-gray-50 max-h-[600px] overflow-y-auto">
               {filtered.map(msg => (
                 <div 
                   key={msg._id} 
@@ -298,7 +341,7 @@ export const Messaging = ({ users = [], reports = [] }) => {
                   className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${
                     selected?._id === msg._id 
                       ? 'bg-emerald-50 border-l-2 border-emerald-500' 
-                      : ''
+                      : !msg.read ? 'bg-blue-50/30' : ''
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2 mb-1">
@@ -314,18 +357,20 @@ export const Messaging = ({ users = [], reports = [] }) => {
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                      <span className="text-xs text-gray-400">{fmtDate(msg.createdAt)}</span>
-                      <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
-                        msg.read 
-                          ? 'bg-green-100 text-green-700' 
-                          : 'bg-orange-100 text-orange-700'
-                      }`}>
-                        {msg.read ? '✓ Lu' : '● Non lu'}
+                      <span className="text-[10px] text-gray-400" title={fmtDate(msg.createdAt)}>
+                        {fmtTimeAgo(msg.createdAt)}
                       </span>
+                      {!msg.read && (
+                        <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                      )}
                     </div>
                   </div>
-                  <p className="text-sm font-medium text-gray-700 truncate">{msg.subject}</p>
-                  <p className="text-xs text-gray-400 truncate mt-0.5">{msg.content}</p>
+                  <p className={`text-sm truncate ${!msg.read ? 'font-semibold text-gray-800' : 'text-gray-600'}`}>
+                    {msg.subject}
+                  </p>
+                  <p className="text-xs text-gray-400 truncate mt-0.5">
+                    {msg.content.substring(0, 80)}...
+                  </p>
                 </div>
               ))}
             </div>
@@ -333,27 +378,31 @@ export const Messaging = ({ users = [], reports = [] }) => {
         </div>
 
         {/* Détail */}
-        <div className="lg:col-span-3 bg-white rounded-2xl border border-gray-100 shadow-sm">
+        <div className="lg:col-span-3 bg-white rounded-2xl border border-gray-100 shadow-sm min-h-[400px]">
           {selected ? (
             <div className="p-6">
-              <div className="flex items-start justify-between mb-5">
+              <div className="flex items-start justify-between flex-wrap gap-3 mb-5 pb-4 border-b border-gray-100">
                 <div>
-                  <h3 className="font-bold text-gray-900 text-lg">{selected.subject}</h3>
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="font-bold text-gray-900 text-lg">{selected.subject}</h3>
+                    <span className={`text-xs px-2 py-1 rounded-full font-semibold ${
+                      selected.read 
+                        ? 'bg-green-100 text-green-700' 
+                        : 'bg-orange-100 text-orange-700'
+                    }`}>
+                      {selected.read ? '✓ Lu' : '● Non lu'}
+                    </span>
+                  </div>
                   <p className="text-sm text-gray-500 mt-1">
                     À : <strong>{selected.to?.firstName} {selected.to?.lastName}</strong> ({selected.to?.email})
                   </p>
-                  <p className="text-xs text-gray-400 mt-0.5">Envoyé le {fmtDate(selected.createdAt)}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Envoyé le {fmtDate(selected.createdAt)}
+                    {selected.read && selected.readAt && (
+                      <span className="ml-2">• Lu le {fmtDate(selected.readAt)}</span>
+                    )}
+                  </p>
                 </div>
-                <span className={`text-xs px-2 py-1 rounded-full font-semibold ${
-                  selected.read 
-                    ? 'bg-green-100 text-green-700' 
-                    : 'bg-orange-100 text-orange-700'
-                }`}>
-                  {selected.read 
-                    ? `✓ Lu le ${fmtDate(selected.readAt)}` 
-                    : '● Non lu'
-                  }
-                </span>
               </div>
 
               {selected.reportId && (
@@ -380,6 +429,7 @@ export const Messaging = ({ users = [], reports = [] }) => {
             <div className="flex flex-col items-center justify-center h-full py-16 text-gray-300">
               <span className="text-5xl mb-3">✉️</span>
               <p className="text-sm font-medium">Sélectionnez un message</p>
+              <p className="text-xs text-gray-300 mt-1">ou envoyez-en un nouveau</p>
             </div>
           )}
         </div>
@@ -387,3 +437,5 @@ export const Messaging = ({ users = [], reports = [] }) => {
     </div>
   );
 };
+
+export default Messaging;

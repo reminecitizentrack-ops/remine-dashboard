@@ -180,7 +180,6 @@ export const useDashboardData = () => {
   } = useQuery({
     queryKey: ['reports'],
     queryFn: async () => {
-      console.log('🔄 Fetching reports from API...');
       try {
         const response = await dashboardAPI.getReports({ 
           limit: 100, 
@@ -199,11 +198,9 @@ export const useDashboardData = () => {
           }
         }
         
-        console.log(`📊 Raw reports: ${reportsData.length}`);
         
         // 🔥 NETTOYAGE SPÉCIALISÉ DES REPORTS
         const cleanedReports = cleanReportsData(reportsData);
-        console.log('🧹 Reports ultra-nettoyés:', cleanedReports.length);
         
         return cleanedReports;
       } catch (error) {
@@ -227,7 +224,6 @@ export const useDashboardData = () => {
         
         // 🔥 NETTOYAGE COMPLET DES STATS
         const cleanedStats = cleanStatsData(statsData);
-        console.log('📈 Stats ultra-nettoyées:', !!cleanedStats);
         
         return cleanedStats;
       } catch (error) {
@@ -362,14 +358,7 @@ export const useDashboardData = () => {
   const safeFilterOptions = filterOptions;
 
   // VÉRIFICATION FINALE - SUPPRIMER LES LOGS QUI CAUSENT DES ERREURS
-  useEffect(() => {
-    console.log('🎯 useDashboardData - Final state:', {
-      reportsCount: safeReports.length,
-      stats: !!safeStats,
-      usersCount: safeUsers.length,
-      isLoading
-    });
-  }, [safeReports, safeStats, safeUsers, isLoading]);
+
 
   return {
     // Données principales - ULTRA-SÉCURISÉES
