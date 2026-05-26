@@ -154,23 +154,25 @@ const ImageModal = ({ image, onClose }) => {
   );
 };
 
-// ==================== SÉLECTEUR D'AGENT ====================
+// ==================== SÉLECTEUR D'AGENT (avec recherche) ====================
 
 const AgentSelector = ({ reportId, currentAgent, onAssign }) => {
   const [agents, setAgents]     = useState([]);
   const [loading, setLoading]   = useState(false);
   const [assigning, setAssign]  = useState(false);
   const [open, setOpen]         = useState(false);
+  const [search, setSearch]     = useState('');
 
+  // Nom affiché de l'agent courant
   const currentName = currentAgent && typeof currentAgent === 'object'
-    ? `${currentAgent.firstName || ''} ${currentAgent.lastName || ''}`.trim()
+    ? `${currentAgent.firstName || ''} ${currentAgent.lastName || ''}`.trim() || currentAgent.email
     : null;
 
+  // Charger les agents à l'ouverture (une seule fois, cache)
   useEffect(() => {
-    if (!open) return;
+    if (!open || agents.length > 0) return;
     setLoading(true);
-    Promise.resolve()
-      .then(() => dashboardAPI.getUsers())
+    dashboardAPI.getUsers()
       .then(res => {
         const arr = Array.isArray(res) ? res
           : Array.isArray(res?.data) ? res.data
@@ -181,14 +183,21 @@ const AgentSelector = ({ reportId, currentAgent, onAssign }) => {
       .finally(() => setLoading(false));
   }, [open]);
 
+  // Filtrer selon la recherche
+  const filtered = agents.filter(a => {
+    const name = `${a.firstName || ''} ${a.lastName || ''} ${a.email || ''}`.toLowerCase();
+    return name.includes(search.toLowerCase());
+  });
+
   const handleAssign = async (agentId, agentName) => {
     setAssign(true);
     try {
-      await dashboardAPI.updateReportStatus(reportId, null, '', agentId);
+      await dashboardAPI.updateReportStatus(reportId, null, '', agentId || null);
       onAssign(agentId, agentName);
       setOpen(false);
+      setSearch('');
     } catch (e) {
-      console.error('Erreur assignation:', e);
+      console.error("Erreur assignation:", e);
     } finally {
       setAssign(false);
     }
@@ -196,70 +205,131 @@ const AgentSelector = ({ reportId, currentAgent, onAssign }) => {
 
   return (
     <div className="relative">
+      {/* Bouton principal */}
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm hover:bg-gray-100 transition-colors"
+        disabled={assigning}
+        className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border text-sm transition-all ${
+          currentName
+            ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+            : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100'
+        }`}
       >
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-base flex-shrink-0">
-            {currentName ? '✅' : '👤'}
-          </span>
-          <span className={`truncate ${currentName ? 'text-gray-800 font-medium' : 'text-gray-400 italic'}`}>
-            {currentName || 'Non assigné'}
-          </span>
+          {currentName ? (
+            <>
+              <div className="w-6 h-6 bg-emerald-200 text-emerald-800 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
+                {currentName[0]?.toUpperCase() || '?'}
+              </div>
+              <span className="font-semibold truncate">{currentName}</span>
+              <span className="text-emerald-500 text-xs flex-shrink-0">✓ Assigné</span>
+            </>
+          ) : (
+            <>
+              <span className="text-base flex-shrink-0">👤</span>
+              <span className="italic text-gray-400">Non assigné — cliquez pour assigner</span>
+            </>
+          )}
         </div>
-        <span className="text-gray-400 text-xs flex-shrink-0 ml-2">▾</span>
+        {assigning ? (
+          <div className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+        ) : (
+          <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        )}
       </button>
 
+      {/* Dropdown */}
       {open && (
         <>
-          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
-          <div className="absolute left-0 right-0 top-10 z-40 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden">
-            <div className="px-3 py-2 bg-gray-50 border-b border-gray-100">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Assigner à</p>
-            </div>
-            {loading ? (
-              <div className="flex items-center justify-center py-4 gap-2 text-sm text-gray-400">
-                <div className="w-4 h-4 border-2 border-gray-300 border-t-emerald-500 rounded-full animate-spin" />
-                Chargement…
+          <div className="fixed inset-0 z-30" onClick={() => { setOpen(false); setSearch(''); }} />
+          <div className="absolute left-0 right-0 top-12 z-40 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden">
+
+            {/* Recherche */}
+            <div className="p-2 border-b border-gray-100">
+              <div className="relative">
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+                <input
+                  autoFocus
+                  type="text"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Rechercher un agent…"
+                  className="w-full text-sm pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
               </div>
-            ) : agents.length === 0 ? (
-              <p className="text-sm text-gray-400 italic px-4 py-3">Aucun agent disponible</p>
-            ) : (
-              <div className="max-h-48 overflow-y-auto">
-                {currentName && (
-                  <button
-                    onClick={() => handleAssign('', 'Non assigné')}
-                    disabled={assigning}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors text-left border-b border-gray-50"
-                  >
-                    <span>✕</span>
-                    <span className="font-medium">Retirer l'assignation</span>
-                  </button>
-                )}
-                {agents.map(agent => {
-                  const name  = `${agent.firstName || ''} ${agent.lastName || ''}`.trim() || agent.email;
-                  const isCur = currentAgent?._id === (agent._id || agent.id) || currentAgent === (agent._id || agent.id);
-                  return (
+            </div>
+
+            <div className="max-h-52 overflow-y-auto">
+              {loading ? (
+                <div className="flex items-center justify-center py-5 gap-2 text-sm text-gray-400">
+                  <div className="w-4 h-4 border-2 border-gray-300 border-t-emerald-500 rounded-full animate-spin" />
+                  Chargement des agents…
+                </div>
+              ) : filtered.length === 0 ? (
+                <p className="text-sm text-gray-400 italic text-center px-4 py-4">
+                  {search ? `Aucun agent pour "${search}"` : 'Aucun agent disponible'}
+                </p>
+              ) : (
+                <>
+                  {/* Option retirer */}
+                  {currentName && (
                     <button
-                      key={agent._id || agent.id}
-                      onClick={() => handleAssign(agent._id || agent.id, name)}
-                      disabled={assigning || isCur}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left ${
-                        isCur ? 'bg-emerald-50 text-emerald-700 cursor-default' : 'hover:bg-gray-50 text-gray-700'
-                      }`}
+                      onClick={() => handleAssign('', 'Non assigné')}
+                      disabled={assigning}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors text-left border-b border-gray-50"
                     >
-                      <div className="w-7 h-7 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
-                        {name[0]?.toUpperCase() || '?'}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-medium truncate">{name}</p>
-                        <p className="text-xs text-gray-400 truncate">{agent.email}</p>
-                      </div>
-                      {isCur && <span className="ml-auto text-emerald-600 text-xs font-semibold flex-shrink-0">Assigné</span>}
+                      <div className="w-7 h-7 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0 text-xs">✕</div>
+                      <span className="font-medium">Retirer l'assignation</span>
                     </button>
-                  );
-                })}
+                  )}
+
+                  {/* Liste agents */}
+                  {filtered.map(agent => {
+                    const name  = `${agent.firstName || ''} ${agent.lastName || ''}`.trim() || agent.email;
+                    const curId = currentAgent?._id || currentAgent?.id || (typeof currentAgent === 'string' ? currentAgent : '');
+                    const aId   = agent._id || agent.id;
+                    const isCur = curId === aId;
+                    return (
+                      <button
+                        key={aId}
+                        onClick={() => !isCur && handleAssign(aId, name)}
+                        disabled={assigning || isCur}
+                        className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left ${
+                          isCur
+                            ? 'bg-emerald-50 cursor-default'
+                            : 'hover:bg-gray-50 text-gray-700'
+                        }`}
+                      >
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                          isCur ? 'bg-emerald-200 text-emerald-800' : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {name[0]?.toUpperCase() || '?'}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className={`font-medium truncate ${isCur ? 'text-emerald-700' : 'text-gray-800'}`}>{name}</p>
+                          <p className="text-xs text-gray-400 truncate">{agent.email}</p>
+                          <span className={`inline-block text-xs px-1.5 py-0.5 rounded-full mt-0.5 ${
+                            agent.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+                          }`}>
+                            {agent.role === 'admin' ? 'Admin' : 'Modérateur'}
+                          </span>
+                        </div>
+                        {isCur && (
+                          <span className="text-emerald-600 font-bold text-xs flex-shrink-0">✓</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </>
+              )}
+            </div>
+
+            {/* Footer stats */}
+            {!loading && agents.length > 0 && (
+              <div className="px-4 py-2 bg-gray-50 border-t border-gray-100 text-xs text-gray-400">
+                {agents.length} agent{agents.length > 1 ? 's' : ''} disponible{agents.length > 1 ? 's' : ''}
               </div>
             )}
           </div>
