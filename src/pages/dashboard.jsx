@@ -1,4 +1,4 @@
-// pages/dashboard.jsx — DESIGN MODERNE
+// pages/dashboard.jsx — DESIGN MODERNE (avec tous les composants intégrés)
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { StatsOverview }       from '../components/StatsOverview';
 import { ReportsTable }        from '../components/ReportsTable';
@@ -13,8 +13,8 @@ import { AIPriorityEngine }    from '../components/AIPriorityEngine';
 import { AIPatternDetector }   from '../components/AIPatternDetector';
 import { PredictiveInsights }  from '../components/PredictiveInsights';
 import { MetricCard }          from '../components/MetricCard';
-import { StatsCards }         from '../components/StatsCards';
-import { TagsManager }       from '../components/TagsManager';
+import { StatsCards }          from '../components/StatsCards';
+import { TagsManager }         from '../components/TagsManager';
 import { dashboardAPI }        from '../services/api';
 import { useDashboardData }    from '../hooks/useDashboardData';
 import { DeletionLogs }        from '../components/DeletionLogs';
@@ -25,10 +25,10 @@ import { ActionHistory }       from '../components/ActionHistory';
 import { Messaging }           from '../components/Messaging';
 import { AutoReport }          from '../components/AutoReport';
 import { NotificationBell }    from '../components/NotificationBell';
-import { LiveFeed }             from '../components/LiveFeed';
+import { LiveFeed }            from '../components/LiveFeed';
 import { LOGO_BASE64 }         from '../assets/logo';
 import { aiService }           from '../services/aiService';
-import { useQuery }             from '@tanstack/react-query';
+import { useQuery }            from '@tanstack/react-query';
 
 // ==================== CONSTANTES ====================
 
@@ -52,6 +52,10 @@ const TABS = [
   { id: 'regions',      label: 'Régions',         icon: '🗺️', desc: 'Stats par région'             },
   { id: 'messaging',    label: 'Messagerie',      icon: '✉️',  desc: 'Messages aux citoyens'        },
   { id: 'autoreport',   label: 'Rapport auto',    icon: '📄',  desc: 'Générer un rapport PDF'       },
+  { id: 'tags',         label: 'Tags',            icon: '🏷️',  desc: 'Gestion des tags'             },  // ← NOUVEAU
+  { id: 'stats-cards',  label: 'Statistiques',    icon: '📊',  desc: 'Vue cartes stats'             },  // ← NOUVEAU
+  { id: 'metrics',      label: 'Métriques',       icon: '📈',  desc: 'Métriques détaillées'         },  // ← NOUVEAU
+  { id: 'history',      label: 'Historique',      icon: '⏱️',  desc: 'Historique des actions'       },  // ← NOUVEAU
 ];
 
 // ==================== SOUS-COMPOSANTS ====================
@@ -121,7 +125,6 @@ const NavItem = ({ tab, active, onClick, badge, collapsed = false }) => {
         overflow: 'hidden',
       }}
     >
-      {/* Barre active gauche */}
       {active && !collapsed && (
         <span style={{
           position: 'absolute', left: 0, top: '20%', bottom: '20%',
@@ -131,7 +134,6 @@ const NavItem = ({ tab, active, onClick, badge, collapsed = false }) => {
         }} />
       )}
 
-      {/* Icône */}
       <span style={{
         width: 34, height: 34, flexShrink: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -221,7 +223,6 @@ const LoadingScreen = () => (
   </div>
 );
 
-// Horloge footer — se met à jour chaque minute
 const FooterClock = () => {
   const [time, setTime] = React.useState(() =>
     new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
@@ -297,8 +298,8 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState(() => {
     try { return localStorage.getItem('remine_active_tab') || 'overview'; } catch { return 'overview'; }
   });
-  const [collapsed, setCollapsed]           = useState(false);  // sidebar réduite
-  const [showSearch, setShowSearch]         = useState(false);  // recherche globale
+  const [collapsed, setCollapsed]           = useState(false);
+  const [showSearch, setShowSearch]         = useState(false);
   const [darkMode, setDarkMode]             = useState(() => {
     try { return localStorage.getItem('remine_dark') === '1'; } catch { return false; }
   });
@@ -309,24 +310,22 @@ export default function Dashboard() {
   const [aiLoading, setAILoading]           = useState(false);
   const [showPDFModal, setShowPDFModal]     = useState(false);
   const [refreshing, setRefreshing]         = useState(false);
-  const [rtBadge, setRtBadge]               = useState(0);    // badge temps réel
-  const [rtToast, setRtToast]               = useState(null); // toast notification
-  const [showProfile, setShowProfile]       = useState(false); // menu profil admin
-  const [autoRefresh, setAutoRefresh]       = useState(false); // auto-refresh
-  const [refreshInterval, setRefreshInterval] = useState(60); // secondes
+  const [rtBadge, setRtBadge]               = useState(0);
+  const [rtToast, setRtToast]               = useState(null);
+  const [showProfile, setShowProfile]       = useState(false);
+  const [autoRefresh, setAutoRefresh]       = useState(false);
+  const [refreshInterval, setRefreshInterval] = useState(60);
   const [refreshCountdown, setRefreshCountdown] = useState(60);
   const [pdfSelectedReport, setPdfSelectedReport] = useState(null);
   const [pdfReportComments, setPdfReportComments] = useState([]);
   const [deletionLogsForPDF, setDeletionLogsForPDF] = useState([]);
   const [deletionStatsForPDF, setDeletionStatsForPDF] = useState([]);
 
-  // Données d'activité réelles (7 jours)
   const { data: activityData = [] } = useQuery({
     queryKey: ['activity-7d'],
     queryFn: async () => {
       const res = await dashboardAPI.getActivity();
       if (res?.success && Array.isArray(res.data) && res.data.length > 0) return res.data;
-      // Fallback : distribuer les signalements connus sur 7 jours si l'API échoue
       return Array.from({ length: 7 }, (_, i) => {
         const d = new Date();
         d.setDate(d.getDate() - (6 - i));
@@ -342,19 +341,19 @@ export default function Dashboard() {
     staleTime: 30000,
     retry: 2,
   });
-  const [aiPatterns, setAIPatterns]         = useState(null);
+  const [aiPatterns, setAIPatterns] = useState(null);
 
   const notify = useCallback((message, type = 'success', details = '') => {
     setToast({ show: true, message, type, details });
     setTimeout(() => setToast(t => ({ ...t, show: false })), 4000);
   }, []);
 
-  const memoizedStats    = useMemo(() => stats,               [stats]);
-  const memoizedReports  = useMemo(() => Array.isArray(reports)  ? reports  : [], [reports]);
-  const memoizedUsers    = useMemo(() => Array.isArray(users)    ? users    : [], [users]);
-  const memoizedAnalytics = useMemo(() => analytics,          [analytics]);
+  const memoizedStats    = useMemo(() => stats, [stats]);
+  const memoizedReports  = useMemo(() => Array.isArray(reports) ? reports : [], [reports]);
+  const memoizedUsers    = useMemo(() => Array.isArray(users) ? users : [], [users]);
+  const memoizedAnalytics = useMemo(() => analytics, [analytics]);
   const memoizedProjects  = useMemo(() => Array.isArray(valorizationProjects) ? valorizationProjects : [], [valorizationProjects]);
-  const memoizedImpact    = useMemo(() => impactMetrics,      [impactMetrics]);
+  const memoizedImpact    = useMemo(() => impactMetrics, [impactMetrics]);
 
   const analyzePatterns = useCallback(async () => {
     if (!memoizedReports.length) return;
@@ -369,7 +368,6 @@ export default function Dashboard() {
     }
   }, [memoizedReports]);
 
-  // Lire le profil depuis le token JWT
   const adminProfile = React.useMemo(() => {
     try {
       const token = localStorage.getItem('remine_admin_token');
@@ -379,7 +377,6 @@ export default function Dashboard() {
     } catch { return null; }
   }, []);
 
-  // Socket.io temps réel
   const showRtToast = React.useCallback((message, type = 'info') => {
     setRtToast({ message, type, id: Date.now() });
     setTimeout(() => setRtToast(null), 4000);
@@ -397,7 +394,6 @@ export default function Dashboard() {
     onNewComment:    React.useCallback(() => {}, []),
   });
 
-  // Auto-refresh countdown
   React.useEffect(() => {
     if (!autoRefresh) { setRefreshCountdown(refreshInterval); return; }
     setRefreshCountdown(refreshInterval);
@@ -410,8 +406,6 @@ export default function Dashboard() {
     return () => clearInterval(tick);
   }, [autoRefresh, refreshInterval, refetchAll]);
 
-  // Persister l'onglet actif — déclaré AVANT les useEffect qui l'utilisent
-  // Appliquer dark mode
   React.useEffect(() => {
     const html = document.documentElement;
     if (darkMode) { html.classList.add('dark'); }
@@ -426,7 +420,6 @@ export default function Dashboard() {
 
   useEffect(() => { if (error) notify('Erreur de connexion au serveur', 'error', 'Vérifiez que le backend tourne'); }, [error]);
 
-  // Fermer profil si clic extérieur
   useEffect(() => {
     if (!showProfile) return;
     const handler = (e) => {
@@ -436,7 +429,6 @@ export default function Dashboard() {
     return () => document.removeEventListener('mousedown', handler);
   }, [showProfile]);
 
-  // Raccourcis clavier
   useEffect(() => {
     const handler = (e) => {
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
@@ -447,7 +439,7 @@ export default function Dashboard() {
       }
       if (e.key === 'Escape') { setShowSearch(false); setSearchQuery(''); return; }
       if (e.key === 'r' && !e.metaKey && !e.ctrlKey) { refetchAll(); return; }
-      const tabIds = ['overview','reports','map','ai-insights','analytics','valorization','users','audit'];
+      const tabIds = ['overview','reports','map','ai-insights','analytics','valorization','users','audit','regions','messaging','autoreport','tags','stats-cards','metrics','history'];
       const idx = parseInt(e.key) - 1;
       if (idx >= 0 && idx < tabIds.length) handleTabChange(tabIds[idx]);
     };
@@ -457,7 +449,6 @@ export default function Dashboard() {
 
   useEffect(() => { if (memoizedReports.length > 0) analyzePatterns(); }, [memoizedReports.length]);
 
-  // Recherche globale
   const searchResults = React.useMemo(() => {
     if (!searchQuery.trim() || searchQuery.length < 2) return { reports: [], users: [] };
     const q = searchQuery.toLowerCase();
@@ -504,7 +495,6 @@ export default function Dashboard() {
   }, [createDemoData, notify]);
 
   const urgentCount  = memoizedReports.filter(r => r.severity === 'critical' && r.status !== 'resolved').length;
-  const pendingCount = memoizedReports.filter(r => r.status === 'new').length;
 
   const impactData = useMemo(() => ({
     co2Saved:          memoizedImpact?.environmental?.co2Saved          || 1250,
@@ -515,6 +505,16 @@ export default function Dashboard() {
     revenueGenerated:  memoizedImpact?.economic?.revenueGenerated       || 125000,
     citizensEngaged:   memoizedImpact?.social?.citizensEngaged          || 320,
   }), [memoizedImpact]);
+
+  // Préparer les données pour StatsCards
+  const statsCardsData = useMemo(() => ({
+    totalReports: memoizedStats?.overview?.totalReports || 0,
+    resolvedReports: memoizedStats?.overview?.resolvedReports || 0,
+    activeReports: memoizedStats?.overview?.activeReports || memoizedReports.filter(r => ['new','verified','in_progress'].includes(r.status)).length,
+    resolutionRate: memoizedStats?.overview?.resolutionRate || (memoizedReports.length ? Math.round((memoizedReports.filter(r => r.status === 'resolved').length / memoizedReports.length) * 100) : 0),
+    totalUsers: memoizedStats?.overview?.totalUsers || memoizedUsers.length,
+    urgentReports: urgentCount,
+  }), [memoizedStats, memoizedReports, memoizedUsers, urgentCount]);
 
   // ==================== CONTENU DES ONGLETS ====================
 
@@ -573,7 +573,6 @@ export default function Dashboard() {
 
             {/* Impact + Alertes */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Impact environnemental */}
               <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
                 <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
                   <span className="w-7 h-7 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center text-sm">🌍</span>
@@ -596,7 +595,6 @@ export default function Dashboard() {
                   })}
                 </div>
 
-                {/* Mini graphique activité */}
                 <div className="mt-5 pt-5 border-t border-gray-100">
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="text-sm font-semibold text-gray-600">Activité des 7 derniers jours</h4>
@@ -605,8 +603,7 @@ export default function Dashboard() {
                     </span>
                   </div>
                   {(() => {
-                    const days = activityData?.length
-                      ? activityData
+                    const days = activityData?.length                      ? activityData
                       : Array.from({ length: 7 }, (_, i) => {
                           const d = new Date(); d.setDate(d.getDate() - (6 - i));
                           return { count: 0, label: d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' }) };
@@ -614,7 +611,6 @@ export default function Dashboard() {
                     const maxCount = Math.max(...days.map(d => d.count || 0), 1);
                     return (
                       <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
-                        {/* Barres */}
                         <div className="flex items-end gap-1.5 h-16 mb-2">
                           {days.map((day, i) => {
                             const pct   = Math.max(((day.count || 0) / maxCount) * 100, day.count > 0 ? 8 : 3);
@@ -633,11 +629,10 @@ export default function Dashboard() {
                             );
                           })}
                         </div>
-                        {/* Labels jours */}
                         <div className="flex gap-1.5">
                           {days.map((day, i) => {
                             const today = i === days.length - 1;
-                            const label = (day.label || '').split(' ')[0]; // juste "lun", "mar"…
+                            const label = (day.label || '').split(' ')[0];
                             return (
                               <div key={i} className="flex-1 text-center">
                                 <span className={`text-gray-500 font-medium ${today ? 'text-emerald-600 font-bold' : ''}`}
@@ -654,7 +649,6 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Alertes */}
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div className="p-5 border-b border-gray-100">
                   <h3 className="font-bold text-gray-900 flex items-center gap-2">
@@ -671,7 +665,6 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Activité récente + Priorisation IA */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
                 <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
@@ -695,7 +688,6 @@ export default function Dashboard() {
             onRefresh={refetchAll}
             onExportPDF={async ({ reports: reps, selectedReport: sel }) => {
               setPdfSelectedReport(sel || null);
-              // Charger les commentaires si un signalement est sélectionné
               if (sel) {
                 try {
                   const id = sel._id || sel.id;
@@ -705,14 +697,13 @@ export default function Dashboard() {
               } else {
                 setPdfReportComments([]);
               }
-              // Charger les logs de suppression
               try {
                 const res = await dashboardAPI.getDeletionLogs({ limit: 500 });
                 if (res?.success) {
                   setDeletionLogsForPDF(res.data?.logs || []);
                   setDeletionStatsForPDF(res.data?.stats || []);
                 }
-              } catch (e) { /* silencieux */ }
+              } catch (e) {}
               setShowPDFModal(true);
             }}
           />
@@ -754,6 +745,115 @@ export default function Dashboard() {
 
       case 'messaging':
         return <Messaging users={memoizedUsers} reports={memoizedReports} />;
+
+      // ==================== NOUVEAUX ONGLETS INTÉGRÉS ====================
+
+      case 'tags':
+        return (
+          <div className="space-y-6">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <span className="text-2xl">🏷️</span>
+                Gestion des tags
+              </h2>
+              <p className="text-sm text-gray-500 mb-6">
+                Gérez les tags pour catégoriser et filtrer les signalements.
+              </p>
+              <TagsManager reports={memoizedReports} onUpdate={refetchAll} />
+            </div>
+          </div>
+        );
+
+      case 'stats-cards':
+        return (
+          <div className="space-y-6">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <span className="text-2xl">📊</span>
+                Vue globale des statistiques
+              </h2>
+              <p className="text-sm text-gray-500 mb-6">
+                Visualisation synthétique de tous les indicateurs clés.
+              </p>
+              <StatsCards data={statsCardsData} />
+            </div>
+          </div>
+        );
+
+      case 'metrics':
+        return (
+          <div className="space-y-6">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <span className="text-2xl">📈</span>
+                Métriques détaillées
+              </h2>
+              <p className="text-sm text-gray-500 mb-6">
+                Mesures précises d'impact et de performance.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <MetricCard
+                  title="Impact CO₂"
+                  value={`${impactData.co2Saved} t`}
+                  change={+12}
+                  icon="🌍"
+                  color="emerald"
+                />
+                <MetricCard
+                  title="Eau protégée"
+                  value={`${(impactData.waterProtected / 1000).toFixed(0)}k L`}
+                  change={+8}
+                  icon="💧"
+                  color="blue"
+                />
+                <MetricCard
+                  title="Déchets traités"
+                  value={`${impactData.wasteProcessed} t`}
+                  change={+15}
+                  icon="♻️"
+                  color="amber"
+                />
+                <MetricCard
+                  title="Revenus générés"
+                  value={formatFCFA(impactData.revenueGenerated / EUR_TO_FCFA)}
+                  change={+5}
+                  icon="💰"
+                  color="purple"
+                />
+                <MetricCard
+                  title="Emplois créés"
+                  value={impactData.jobsCreated}
+                  change={+3}
+                  icon="👔"
+                  color="emerald"
+                />
+                <MetricCard
+                  title="Citoyens engagés"
+                  value={impactData.citizensEngaged}
+                  change={+22}
+                  icon="🤝"
+                  color="blue"
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'history':
+        return (
+          <div className="space-y-6">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <span className="text-2xl">⏱️</span>
+                Historique des actions
+              </h2>
+              <p className="text-sm text-gray-500 mb-6">
+                Toutes les actions effectuées sur la plateforme.
+              </p>
+              <ActionHistory />
+            </div>
+          </div>
+        );
 
       default:
         return (
@@ -797,7 +897,6 @@ export default function Dashboard() {
 
       {/* ===== SIDEBAR DESKTOP ===== */}
       <aside className={`hidden lg:flex flex-col bg-white border-r border-gray-100 flex-shrink-0 transition-all duration-200 ${collapsed ? 'w-16' : 'w-60 xl:w-64'}`}>
-        {/* Logo */}
         <div className="flex items-center justify-between px-3 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2 min-w-0">
             <img src={LOGO_BASE64} alt="ReMine" className="w-9 h-9 object-contain flex-shrink-0" />
@@ -815,7 +914,6 @@ export default function Dashboard() {
           </button>
         </div>
 
-        {/* Navigation */}
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
           {TABS.map(tab => (
             <NavItem key={tab.id} tab={tab} active={activeTab === tab.id} onClick={handleTabChange}
@@ -823,7 +921,6 @@ export default function Dashboard() {
           ))}
         </nav>
 
-        {/* Stats rapides */}
         {!collapsed && (
           <div className="px-4 py-4 border-t border-gray-100 bg-gray-50">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Résumé</p>
@@ -851,7 +948,6 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Dark mode toggle */}
         <div className={`px-2 py-2 ${collapsed ? 'flex justify-center' : ''}`}>
           <button
             onClick={() => setDarkMode(d => !d)}
@@ -863,7 +959,6 @@ export default function Dashboard() {
           </button>
         </div>
 
-        {/* Déconnexion */}
         <div className="px-2 py-3 border-t border-gray-100">
           <button
             onClick={() => dashboardAPI.logout()}
@@ -879,10 +974,8 @@ export default function Dashboard() {
       {/* ===== CONTENU PRINCIPAL ===== */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
-        {/* Header */}
         <header className="bg-white border-b border-gray-100 px-4 lg:px-6 py-3.5 flex items-center justify-between gap-4 flex-shrink-0">
           <div className="flex items-center gap-3">
-            {/* Hamburger mobile */}
             <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 rounded-lg text-gray-400 hover:bg-gray-100">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -895,7 +988,6 @@ export default function Dashboard() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Recherche globale Cmd+K */}
             <button
               onClick={() => setShowSearch(true)}
               className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors"
@@ -908,7 +1000,6 @@ export default function Dashboard() {
               <kbd className="text-xs bg-white border border-gray-200 rounded px-1 py-0.5 font-mono">⌘K</kbd>
             </button>
 
-            {/* Statut + badge RT */}
             <div className="hidden sm:flex items-center gap-1.5 text-xs text-gray-500 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-200 relative">
               <span className={`w-1.5 h-1.5 rounded-full ${isLoading ? 'bg-amber-400 animate-pulse' : 'bg-emerald-500'}`} />
               {isLoading ? 'Sync…' : 'Connecté'}
@@ -923,7 +1014,6 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* Auto-refresh */}
             <div className="hidden sm:flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5">
               <button
                 onClick={() => setAutoRefresh(a => !a)}
@@ -945,7 +1035,6 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* Actualiser */}
             <button
               onClick={() => { setRefreshing(true); refetchAll(); setTimeout(() => setRefreshing(false), 1500); }}
               disabled={refreshing}
@@ -957,7 +1046,6 @@ export default function Dashboard() {
               <span className="hidden sm:inline">Actualiser</span>
             </button>
 
-            {/* Bouton Export unique CSV + PDF */}
             <ExportDropdown
               onCSV={() => handleExport()}
               onPDF={async () => {
@@ -973,7 +1061,6 @@ export default function Dashboard() {
               disabled={exportDataLoading}
             />
 
-            {/* Démo */}
             <button
               onClick={handleDemoData}
               disabled={createDemoDataLoading}
@@ -981,10 +1068,9 @@ export default function Dashboard() {
             >
               🎮 <span className="hidden lg:inline">Données démo</span>
             </button>
-            {/* Centre de notifications */}
+
             <NotificationBell onNavigate={(tab, reportId) => handleTabChange(tab, reportId)} />
 
-            {/* Profil admin */}
             <div className="relative" data-profile>
               <button
                 onClick={() => setShowProfile(p => !p)}
@@ -1022,7 +1108,6 @@ export default function Dashboard() {
           </div>
         </header>
 
-        {/* Contenu */}
         <main className="flex-1 overflow-y-auto">
           <div className="p-4 lg:p-6 max-w-screen-2xl mx-auto">
             <Toast toast={toast} onClose={() => setToast(t => ({ ...t, show: false }))} />
@@ -1030,13 +1115,12 @@ export default function Dashboard() {
           </div>
         </main>
 
-        {/* Footer minimal */}
         <footer className="flex-shrink-0 border-t border-gray-100 bg-white px-6 py-2.5 flex items-center justify-between text-xs text-gray-400">
           <span>ReMine Citizen Track — {memoizedStats?.overview?.totalReports || 0} signalements · {memoizedStats?.overview?.totalUsers || 0} citoyens</span>
           <span>Dernière sync : <FooterClock /></span>
         </footer>
       </div>
-      {/* Toast temps réel */}
+
       {rtToast && (
         <div className="fixed bottom-6 right-6 z-[9999] animate-in slide-in-from-bottom-2 duration-300">
           <div className="bg-gray-900 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 max-w-sm">
@@ -1047,7 +1131,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Recherche globale */}
       {showSearch && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4"
              onClick={() => { setShowSearch(false); setSearchQuery(''); }}>
@@ -1125,7 +1208,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Modal Export PDF */}
       {showPDFModal && (
         <ExportPDFModal
           onClose={() => setShowPDFModal(false)}

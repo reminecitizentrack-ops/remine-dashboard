@@ -154,9 +154,127 @@ const ImageModal = ({ image, onClose }) => {
   );
 };
 
+// ==================== SÉLECTEUR D'AGENT ====================
+
+const AgentSelector = ({ reportId, currentAgent, onAssign }) => {
+  const [agents, setAgents]     = useState([]);
+  const [loading, setLoading]   = useState(false);
+  const [assigning, setAssign]  = useState(false);
+  const [open, setOpen]         = useState(false);
+
+  const currentName = currentAgent && typeof currentAgent === 'object'
+    ? `${currentAgent.firstName || ''} ${currentAgent.lastName || ''}`.trim()
+    : null;
+
+  useEffect(() => {
+    if (!open) return;
+    setLoading(true);
+    Promise.resolve()
+      .then(() => dashboardAPI.getUsers())
+      .then(res => {
+        const arr = Array.isArray(res) ? res
+          : Array.isArray(res?.data) ? res.data
+          : [];
+        setAgents(arr.filter(u => ['admin', 'moderator'].includes(u.role)));
+      })
+      .catch(() => setAgents([]))
+      .finally(() => setLoading(false));
+  }, [open]);
+
+  const handleAssign = async (agentId, agentName) => {
+    setAssign(true);
+    try {
+      await dashboardAPI.updateReportStatus(reportId, null, '', agentId);
+      onAssign(agentId, agentName);
+      setOpen(false);
+    } catch (e) {
+      console.error('Erreur assignation:', e);
+    } finally {
+      setAssign(false);
+    }
+  };
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm hover:bg-gray-100 transition-colors"
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-base flex-shrink-0">
+            {currentName ? '✅' : '👤'}
+          </span>
+          <span className={`truncate ${currentName ? 'text-gray-800 font-medium' : 'text-gray-400 italic'}`}>
+            {currentName || 'Non assigné'}
+          </span>
+        </div>
+        <span className="text-gray-400 text-xs flex-shrink-0 ml-2">▾</span>
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
+          <div className="absolute left-0 right-0 top-10 z-40 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden">
+            <div className="px-3 py-2 bg-gray-50 border-b border-gray-100">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Assigner à</p>
+            </div>
+            {loading ? (
+              <div className="flex items-center justify-center py-4 gap-2 text-sm text-gray-400">
+                <div className="w-4 h-4 border-2 border-gray-300 border-t-emerald-500 rounded-full animate-spin" />
+                Chargement…
+              </div>
+            ) : agents.length === 0 ? (
+              <p className="text-sm text-gray-400 italic px-4 py-3">Aucun agent disponible</p>
+            ) : (
+              <div className="max-h-48 overflow-y-auto">
+                {currentName && (
+                  <button
+                    onClick={() => handleAssign('', 'Non assigné')}
+                    disabled={assigning}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors text-left border-b border-gray-50"
+                  >
+                    <span>✕</span>
+                    <span className="font-medium">Retirer l'assignation</span>
+                  </button>
+                )}
+                {agents.map(agent => {
+                  const name  = `${agent.firstName || ''} ${agent.lastName || ''}`.trim() || agent.email;
+                  const isCur = currentAgent?._id === (agent._id || agent.id) || currentAgent === (agent._id || agent.id);
+                  return (
+                    <button
+                      key={agent._id || agent.id}
+                      onClick={() => handleAssign(agent._id || agent.id, name)}
+                      disabled={assigning || isCur}
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left ${
+                        isCur ? 'bg-emerald-50 text-emerald-700 cursor-default' : 'hover:bg-gray-50 text-gray-700'
+                      }`}
+                    >
+                      <div className="w-7 h-7 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
+                        {name[0]?.toUpperCase() || '?'}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-medium truncate">{name}</p>
+                        <p className="text-xs text-gray-400 truncate">{agent.email}</p>
+                      </div>
+                      {isCur && <span className="ml-auto text-emerald-600 text-xs font-semibold flex-shrink-0">Assigné</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
 // Panneau de détail d'un signalement
 const ReportDetailPanel = ({ report, onClose, onStatusChange, updating, onDeleteRequest }) => {
-  const [note, setNote] = useState('');
+  const [note, setNote]                   = useState('');
+  const [selectedAgent, setSelectedAgent] = useState(
+    report?.processing?.assignedTo?._id || report?.processing?.assignedTo || ''
+  );
   const [selectedImg, setSelectedImg] = useState(null);
 
   if (!report) return null;
@@ -167,7 +285,7 @@ const ReportDetailPanel = ({ report, onClose, onStatusChange, updating, onDelete
   const typeCfg  = getTypeConfig(report.type);
 
   const handleStatus = (status) => {
-    onStatusChange(getDisplayId(report), status, note);
+    onStatusChange(getDisplayId(report), status, note, selectedAgent);
     setNote('');
   };
 
@@ -299,6 +417,19 @@ const ReportDetailPanel = ({ report, onClose, onStatusChange, updating, onDelete
               </div>
             </div>
           )}
+
+          {/* Assigner un agent */}
+          <div>
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">👤 Assignation</h4>
+            <AgentSelector
+              reportId={getDisplayId(report)}
+              currentAgent={report?.processing?.assignedTo}
+              onAssign={(agentId, agentLabel) => {
+                setSelectedAgent(agentId);
+                onStatusChange(getDisplayId(report), report.status, '', agentId);
+              }}
+            />
+          </div>
 
           {/* Changer le statut */}
           <div>
@@ -603,8 +734,9 @@ export function ReportsTable({ reports: initialReports, onStatusUpdate, onRefres
       onReportOpened?.();
     }
   }, [initialSelectedReportId, reports]);
-  const [newReportIds, setNewReportIds]   = useState(new Set()); // pour l'animation
-  const [deleteModal, setDeleteModal]     = useState(null);   // report à supprimer
+
+  const [newReportIds, setNewReportIds]   = useState(new Set());
+  const [deleteModal, setDeleteModal]     = useState(null);
   const [deleting, setDeleting]           = useState(false);
   const [filters, setFilters] = useState({
     status: '', type: '', severity: '', searchQuery: '', dateRange: '30d',
@@ -615,11 +747,9 @@ export function ReportsTable({ reports: initialReports, onStatusUpdate, onRefres
   // ==================== WEBSOCKET ====================
 
   useEffect(() => {
-    // Connexion WebSocket pour les signalements en temps réel
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5001';
 
-      // Utiliser socket.io-client si disponible
       if (typeof window !== 'undefined' && window.io) {
         const socket = window.io(apiUrl);
         wsRef.current = socket;
@@ -629,7 +759,6 @@ export function ReportsTable({ reports: initialReports, onStatusUpdate, onRefres
           setReports(prev => [data, ...prev]);
           setTotalCount(prev => prev + 1);
           setNewReportIds(prev => new Set([...prev, getDisplayId(data)]));
-          // Retirer l'animation après 3s
           setTimeout(() => {
             setNewReportIds(prev => { const s = new Set(prev); s.delete(getDisplayId(data)); return s; });
           }, 3000);
@@ -697,17 +826,23 @@ export function ReportsTable({ reports: initialReports, onStatusUpdate, onRefres
     loadReports(newFilters);
   };
 
-  const handleStatusChange = async (reportId, newStatus, note) => {
+  const handleStatusChange = async (reportId, newStatus, note, assignedTo = null) => {
     setUpdatingId(reportId);
     try {
-      await dashboardAPI.updateReportStatus(reportId, newStatus, note);
-      // Mise à jour locale immédiate
+      await dashboardAPI.updateReportStatus(reportId, newStatus, note, assignedTo);
       setReports(prev => prev.map(r =>
-        getDisplayId(r) === reportId ? { ...r, status: newStatus } : r
+        getDisplayId(r) === reportId
+          ? { ...r, status: newStatus, processing: assignedTo
+              ? { ...r.processing, assignedTo }
+              : r.processing }
+          : r
       ));
-      // Mettre à jour le panneau ouvert si c'est le même rapport
       if (selectedReport && getDisplayId(selectedReport) === reportId) {
-        setSelectedReport(prev => ({ ...prev, status: newStatus }));
+        setSelectedReport(prev => ({
+          ...prev,
+          status: newStatus,
+          ...(assignedTo ? { processing: { ...prev.processing, assignedTo } } : {}),
+        }));
       }
       if (onStatusUpdate) onStatusUpdate(reportId, newStatus);
     } catch (err) {
@@ -721,7 +856,6 @@ export function ReportsTable({ reports: initialReports, onStatusUpdate, onRefres
     try {
       await dashboardAPI.exportData(filters, 'csv');
     } catch {
-      // Fallback CSV manuel
       const headers = ['ID', 'Type', 'Description', 'Statut', 'Sévérité', 'Adresse', 'Date', 'Citoyen'];
       const rows = reports.map(r => {
         const loc = getLocationInfo(r);
