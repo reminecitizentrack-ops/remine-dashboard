@@ -42,7 +42,7 @@ const generateAlerts = (reports, stats) => {
         title: 'Taux de Résolution Bas',
         message: `Taux actuel : ${rate.toFixed(1)}% — Objectif : 80%`,
         icon: Info, timestamp: now,
-        action: 'Voir les analytics', tab: 'analytics', filter: null,
+        action: 'Voir les analytics', tab: 'analyse', filter: null,
       });
     }
   }
@@ -56,7 +56,7 @@ const generateAlerts = (reports, stats) => {
       title: 'Bonne Performance',
       message: `${recentlyResolved} signalements résolus dans les dernières 24h — continuez !`,
       icon: CheckCircle, timestamp: now,
-      action: 'Voir le rapport', tab: 'analytics', filter: null,
+      action: 'Voir le rapport', tab: 'analyse', filter: null,
     });
   }
 

@@ -314,7 +314,13 @@ export default function Dashboard() {
   } = useDashboardData();
 
   const [activeTab, setActiveTab] = useState(() => {
-    try { return localStorage.getItem('remine_active_tab') || 'overview'; } catch { return 'overview'; }
+    try {
+      const saved = localStorage.getItem('remine_active_tab') || 'overview';
+      const legacyMap = { 'map':'reports','ai-insights':'analyse','analytics':'analyse','users':'citoyens','audit':'admin','regions':'analyse','messaging':'citoyens','autoreport':'admin','tags':'admin','stats-cards':'analyse','metrics':'analyse','history':'admin' };
+      const validTabs = new Set(['overview','reports','analyse','valorization','citoyens','admin']);
+      const resolved = legacyMap[saved] || saved;
+      return validTabs.has(resolved) ? resolved : 'overview';
+    } catch { return 'overview'; }
   });
   const [collapsed, setCollapsed]           = useState(false);
   const [showSearch, setShowSearch]         = useState(false);
@@ -431,10 +437,34 @@ export default function Dashboard() {
     try { localStorage.setItem('remine_dark', darkMode ? '1' : '0'); } catch {}
   }, [darkMode]);
 
-  const handleTabChange = useCallback((id) => {
-    setActiveTab(id);
-    try { localStorage.setItem('remine_active_tab', id); } catch {}
-  }, []);
+  // Correspondance anciens IDs → nouveaux (migration localStorage ou liens hardcodés)
+  const LEGACY_TAB_MAP = useMemo(() => ({
+    'map':         'reports',
+    'ai-insights': 'analyse',
+    'analytics':   'analyse',
+    'users':       'citoyens',
+    'audit':       'admin',
+    'regions':     'analyse',
+    'messaging':   'citoyens',
+    'autoreport':  'admin',
+    'tags':        'admin',
+    'stats-cards': 'analyse',
+    'metrics':     'analyse',
+    'history':     'admin',
+  }), []);
+
+  const VALID_TABS = useMemo(() => new Set(['overview','reports','analyse','valorization','citoyens','admin']), []);
+
+  const handleTabChange = useCallback((id, reportId) => {
+    const resolved = LEGACY_TAB_MAP[id] || id;
+    const final = VALID_TABS.has(resolved) ? resolved : 'overview';
+    if (reportId) {
+      const found = memoizedReports.find(r => (r._id || r.id) === reportId);
+      if (found) setSelectedReport(found);
+    }
+    setActiveTab(final);
+    try { localStorage.setItem('remine_active_tab', final); } catch {}
+  }, [LEGACY_TAB_MAP, VALID_TABS, memoizedReports]);
 
   useEffect(() => { if (error) notify('Erreur de connexion au serveur', 'error', 'Vérifiez que le backend tourne'); }, [error]);
 
@@ -752,7 +782,7 @@ export default function Dashboard() {
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <AIAnalysisPanel report={selectedReport || memoizedReports[0]} />
-                    <AIPatternDetector reports={memoizedReports} patterns={aiPatterns} isLoading={aiLoading} />
+                    <AIPatternDetector reports={memoizedReports} patterns={aiPatterns} loading={aiLoading} />
                   </div>
                   <PredictiveInsights reports={memoizedReports} patterns={aiPatterns} />
                 </div>
