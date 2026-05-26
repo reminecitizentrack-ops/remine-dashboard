@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import {
-  AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  AreaChart, Area, BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine,
 } from 'recharts';
 import { subDays, startOfDay, subMonths, subYears, format } from 'date-fns';
 
@@ -165,6 +165,59 @@ const buildRealTrends = (reports, days) => {
   };
 };
 
+
+// ── Tendance mensuelle sur 12 mois ───────────────────────────────────────────
+const buildMonthlyTrend = (reports) => {
+  const months = Array.from({ length: 12 }, (_, i) => {
+    const d = subMonths(new Date(), 11 - i);
+    return {
+      label:       format(d, 'MMM yy'),
+      month:       format(d, 'yyyy-MM'),
+      signalements: 0,
+      résolus:      0,
+      tauxRésolution: 0,
+    };
+  });
+
+  safe(reports).forEach(r => {
+    if (!r.createdAt) return;
+    const m = format(new Date(r.createdAt), 'yyyy-MM');
+    const slot = months.find(mo => mo.month === m);
+    if (!slot) return;
+    slot.signalements++;
+    if (r.status === 'resolved') slot.résolus++;
+  });
+
+  months.forEach(m => {
+    m.tauxRésolution = m.signalements > 0
+      ? Math.round((m.résolus / m.signalements) * 100)
+      : 0;
+  });
+
+  return months;
+};
+
+// ── Taux de résolution par type ───────────────────────────────────────────────
+const buildResolutionByType = (reports) => {
+  const byType = {};
+  safe(reports).forEach(r => {
+    const t = r.type || 'other';
+    if (!byType[t]) byType[t] = { total: 0, resolved: 0 };
+    byType[t].total++;
+    if (r.status === 'resolved') byType[t].resolved++;
+  });
+
+  return Object.entries(byType)
+    .map(([type, data]) => ({
+      name:  TYPE_LABELS[type] || type,
+      total: data.total,
+      taux:  data.total > 0 ? Math.round((data.resolved / data.total) * 100) : 0,
+      resolved: data.resolved,
+    }))
+    .sort((a, b) => b.taux - a.taux)
+    .slice(0, 8);
+};
+
 // ─── Carte KPI ───────────────────────────────────────────────────────────────
 const KPICard = ({ icon, label, value, trend, lowerIsBetter = false, unit = '' }) => {
   const isUp = trend?.curr >= trend?.prev;
@@ -221,6 +274,8 @@ export const AdvancedAnalytics = ({ stats, reports }) => {
     return { monthly: Math.round(avg * 30), trend };
   }, [reports]);
 
+  const monthlyTrend      = useMemo(() => buildMonthlyTrend(safe(reports)),       [reports]);
+  const resolutionByType  = useMemo(() => buildResolutionByType(safe(reports)),   [reports]);
   const fmt = (n) => (n || 0).toLocaleString('fr-FR');
 
   return (
@@ -345,6 +400,82 @@ export const AdvancedAnalytics = ({ stats, reports }) => {
               </ResponsiveContainer>
             </div>
           )}
+        </div>
+      </div>
+
+
+      {/* Tendance mensuelle 12 mois + Taux résolution par type */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+        {/* Tendance mensuelle */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Tendance 12 mois</h3>
+            <span className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded-lg">Signalements vs Résolus</span>
+          </div>
+          <div style={{ height: 260 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={monthlyTrend} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="gLine1" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#6366f1" />
+                    <stop offset="100%" stopColor="#3b82f6" />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
+                <Line
+                  type="monotone" dataKey="signalements" name="Signalements"
+                  stroke="#6366f1" strokeWidth={2.5} dot={{ r: 4, fill: '#6366f1', strokeWidth: 0 }}
+                  activeDot={{ r: 6 }}
+                />
+                <Line
+                  type="monotone" dataKey="résolus" name="Résolus"
+                  stroke="#10b981" strokeWidth={2.5} dot={{ r: 4, fill: '#10b981', strokeWidth: 0 }}
+                  strokeDasharray="5 3"
+                  activeDot={{ r: 6 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Taux de résolution par type */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Taux de résolution par type</h3>
+            <span className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded-lg">% résolu</span>
+          </div>
+          {resolutionByType.length === 0 ? (
+            <div className="flex items-center justify-center h-[260px] text-gray-400 text-sm">Aucune donnée</div>
+          ) : (
+            <div style={{ height: 260 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={resolutionByType} layout="vertical" margin={{ top: 4, right: 40, left: 10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" horizontal={false} />
+                  <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} tickFormatter={v => `${v}%`} />
+                  <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: '#6b7280' }} tickLine={false} axisLine={false} width={90} />
+                  <Tooltip formatter={(v, n) => [`${v}%`, 'Taux résolution']} />
+                  <ReferenceLine x={50} stroke="#e5e7eb" strokeDasharray="4 2" />
+                  <ReferenceLine x={80} stroke="#bbf7d0" strokeDasharray="4 2" />
+                  <Bar dataKey="taux" name="Taux résolution" radius={[0, 8, 8, 0]}>
+                    {resolutionByType.map((e, i) => (
+                      <Cell key={i} fill={e.taux >= 80 ? '#10b981' : e.taux >= 50 ? '#f59e0b' : '#ef4444'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+          {/* Légende couleurs */}
+          <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
+            <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> ≥ 80% excellent</div>
+            <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full bg-amber-400" /> ≥ 50% correct</div>
+            <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full bg-red-400" /> &lt; 50% à améliorer</div>
+          </div>
         </div>
       </div>
 

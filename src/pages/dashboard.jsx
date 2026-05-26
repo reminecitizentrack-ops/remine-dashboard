@@ -25,6 +25,7 @@ import { ActionHistory }       from '../components/ActionHistory';
 import { Messaging }           from '../components/Messaging';
 import { AutoReport }          from '../components/AutoReport';
 import { NotificationBell }    from '../components/NotificationBell';
+import { LiveFeed }             from '../components/LiveFeed';
 import { LOGO_BASE64 }         from '../assets/logo';
 import { aiService }           from '../services/aiService';
 import { useQuery }             from '@tanstack/react-query';
@@ -566,6 +567,9 @@ export default function Dashboard() {
                 </div>
               ))}
             </div>
+
+            {/* Flux temps réel */}
+            <LiveFeed reports={memoizedReports} onNavigate={handleTabChange} />
 
             {/* Impact + Alertes */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
