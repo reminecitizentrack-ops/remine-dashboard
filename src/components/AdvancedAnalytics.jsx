@@ -1,590 +1,326 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
-  AreaChart, Area, BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine,
+  AreaChart, Area, BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, RadarChart, Radar,
+  PolarGrid, PolarAngleAxis, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  ResponsiveContainer, ReferenceLine,
 } from 'recharts';
-import { subDays, startOfDay, subMonths, subYears, format } from 'date-fns';
+import { subDays, format, startOfDay } from 'date-fns';
 
-// ─── Constantes ───────────────────────────────────────────────────────────────
 const TYPE_LABELS = {
-  water_pollution:    'Pollution eau',
-  air_pollution:      'Pollution air',
-  soil_contamination: 'Contamination sol',
-  waste_deposit:      'Dépôt déchets',
-  dust:               'Poussière',
-  abandoned_site:     'Site abandonné',
-  noise_pollution:    'Pollution sonore',
-  mining_waste:       'Déchets miniers',
-  other:              'Autre',
+  water_pollution: 'Eau', air_pollution: 'Air', soil_contamination: 'Sol',
+  waste_deposit: 'Déchets', dust: 'Poussière', abandoned_site: 'Site abandonné',
+  noise_pollution: 'Sonore', other: 'Autre',
 };
-
 const STATUS_COLORS = {
-  new:         { name: 'Nouveau',   color: '#f59e0b' },
-  verified:    { name: 'Vérifié',   color: '#3b82f6' },
-  in_progress: { name: 'En cours',  color: '#8b5cf6' },
-  resolved:    { name: 'Résolu',    color: '#10b981' },
-  rejected:    { name: 'Rejeté',    color: '#ef4444' },
+  new: '#f59e0b', verified: '#3b82f6', in_progress: '#8b5cf6',
+  resolved: '#10b981', rejected: '#ef4444',
 };
-
-const PERIOD_OPTIONS = [
-  { value: '7d',  label: '7 derniers jours',  days: 7   },
-  { value: '30d', label: '30 derniers jours', days: 30  },
-  { value: '90d', label: '3 derniers mois',   days: 90  },
-  { value: '6m',  label: '6 derniers mois',   days: 180 },
-  { value: '1y',  label: 'Cette année',        days: 365 },
+const STATUS_LABELS = { new: 'Nouveau', verified: 'Vérifié', in_progress: 'En cours', resolved: 'Résolu', rejected: 'Rejeté' };
+const PIE_COLORS = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#06b6d4','#78350f'];
+const PERIODS = [
+  { value: '7d',  label: '7j',  days: 7   },
+  { value: '30d', label: '30j', days: 30  },
+  { value: '90d', label: '3M',  days: 90  },
+  { value: '6m',  label: '6M',  days: 180 },
+  { value: '1y',  label: '1A',  days: 365 },
 ];
 
-const PIE_COLORS = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#06b6d4','#78350f'];
+const safe = arr => Array.isArray(arr) ? arr : [];
+const dm = () => typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
 
-const CustomTooltip = ({ active, payload, label }) => {
+const TooltipStyle = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
+  const dark = dm();
   return (
-    <div style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:10, padding:'10px 14px', boxShadow:'0 4px 16px rgba(0,0,0,.08)' }}>
-      <p style={{ fontWeight:600, color:'#111827', marginBottom:4, fontSize:13 }}>{label}</p>
+    <div style={{ background: dark ? '#1e293b' : '#fff', border: `1px solid ${dark ? '#334155' : '#e5e7eb'}`, borderRadius: 12, padding: '10px 14px', boxShadow: '0 4px 20px rgba(0,0,0,.12)' }}>
+      <p style={{ fontWeight: 700, color: dark ? '#f1f5f9' : '#0f172a', marginBottom: 6, fontSize: 12 }}>{label}</p>
       {payload.map((e, i) => (
-        <p key={i} style={{ color:e.color, fontSize:12, margin:'2px 0' }}>{e.name} : <strong>{e.value}</strong></p>
+        <p key={i} style={{ color: e.color, fontSize: 12, margin: '2px 0' }}>{e.name} : <strong>{e.value}</strong></p>
       ))}
     </div>
   );
 };
 
-// ─── Utilitaires ─────────────────────────────────────────────────────────────
-const safe = (arr) => Array.isArray(arr) ? arr : [];
-
-const filterByPeriod = (reports, days) => {
-  const cutoff = subDays(new Date(), days);
-  return safe(reports).filter(r => r.createdAt && new Date(r.createdAt) >= cutoff);
+const KpiCard = ({ label, value, sub, color, trend, icon, darkMode }) => {
+  const dark = darkMode;
+  const isUp = trend > 0;
+  return (
+    <div style={{
+      background: dark ? '#1e293b' : '#fff', borderRadius: 16, padding: '16px 18px',
+      border: `1px solid ${dark ? '#334155' : '#f1f5f9'}`, boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+      position: 'relative', overflow: 'hidden',
+    }}>
+      <div style={{ position: 'absolute', top: -10, right: -10, fontSize: 52, opacity: 0.06 }}>{icon}</div>
+      <p style={{ fontSize: 11, fontWeight: 700, color: dark ? '#64748b' : '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.8, margin: '0 0 6px' }}>{label}</p>
+      <p style={{ fontSize: 30, fontWeight: 900, color: dark ? '#f1f5f9' : '#0f172a', margin: 0, fontVariantNumeric: 'tabular-nums' }}>{value}</p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
+        {trend !== undefined && (
+          <span style={{ fontSize: 11, fontWeight: 700, color: isUp ? '#10b981' : '#ef4444', background: isUp ? '#dcfce7' : '#fee2e2', padding: '1px 7px', borderRadius: 99 }}>
+            {isUp ? '↑' : '↓'} {Math.abs(trend)}%
+          </span>
+        )}
+        {sub && <p style={{ fontSize: 11, color: dark ? '#475569' : '#9ca3af', margin: 0 }}>{sub}</p>}
+      </div>
+    </div>
+  );
 };
 
-const comparePeriods = (reports, days) => {
-  const now      = new Date();
-  const cutoff1  = subDays(now, days);
-  const cutoff2  = subDays(now, days * 2);
-  const current  = safe(reports).filter(r => r.createdAt && new Date(r.createdAt) >= cutoff1);
-  const previous = safe(reports).filter(r => r.createdAt && new Date(r.createdAt) >= cutoff2 && new Date(r.createdAt) < cutoff1);
-  return { current, previous };
-};
+export function AdvancedAnalytics({ stats, reports: rawReports, analytics }) {
+  const [period, setPeriod]   = useState('30d');
+  const [chartType, setChartType] = useState('area');
+  const [darkMode, setDarkMode] = useState(false);
 
-const pctChange = (curr, prev) => {
-  if (!prev) return curr > 0 ? '+100%' : '—';
-  const d = Math.round(((curr - prev) / prev) * 100);
-  return d >= 0 ? `+${d}%` : `${d}%`;
-};
+  useEffect(() => {
+    const check = () => setDarkMode(document.documentElement.classList.contains('dark'));
+    check();
+    const obs = new MutationObserver(check);
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => obs.disconnect();
+  }, []);
 
-const pctColor = (curr, prev, lowerIsBetter = false) => {
-  const up = curr >= prev;
-  if (lowerIsBetter) return up ? 'text-red-600' : 'text-emerald-600';
-  return up ? 'text-emerald-600' : 'text-red-600';
-};
+  const reports = useMemo(() => safe(rawReports), [rawReports]);
+  const days    = useMemo(() => PERIODS.find(p => p.value === period)?.days || 30, [period]);
 
-const buildTimeSeries = (reports, days) => {
-  const pts = Math.min(days, 60);
-  const step = Math.max(1, Math.floor(days / pts));
-  const series = Array.from({ length: pts }, (_, i) => {
-    const d = subDays(new Date(), (pts - 1 - i) * step);
-    return {
-      date:         format(d, days <= 30 ? 'dd/MM' : 'MM/yy'),
-      fullDate:     startOfDay(d),
-      signalements: 0,
-      résolus:      0,
-    };
-  });
-  safe(reports).forEach(r => {
-    if (!r.createdAt) return;
-    const rd = startOfDay(new Date(r.createdAt));
-    let closest = null, minDiff = Infinity;
-    series.forEach(s => {
-      const diff = Math.abs(s.fullDate - rd);
-      if (diff < minDiff) { minDiff = diff; closest = s; }
+  const inPeriod = useMemo(() => {
+    const cutoff = subDays(new Date(), days);
+    return reports.filter(r => r.createdAt && new Date(r.createdAt) >= cutoff);
+  }, [reports, days]);
+
+  const prevPeriod = useMemo(() => {
+    const c1 = subDays(new Date(), days);
+    const c2 = subDays(new Date(), days * 2);
+    return reports.filter(r => r.createdAt && new Date(r.createdAt) >= c2 && new Date(r.createdAt) < c1);
+  }, [reports, days]);
+
+  // Série temporelle
+  const timeSeries = useMemo(() => {
+    const pts  = Math.min(days, 45);
+    const step = Math.max(1, Math.floor(days / pts));
+    const series = Array.from({ length: pts }, (_, i) => {
+      const d = subDays(new Date(), (pts - 1 - i) * step);
+      return { date: format(d, days <= 30 ? 'dd/MM' : 'MM/yy'), fullDate: startOfDay(d), total: 0, résolus: 0, critiques: 0 };
     });
-    if (closest && minDiff < step * 86400000) {
-      closest.signalements++;
-      if (r.status === 'resolved') closest.résolus++;
-    }
-  });
-  return series;
-};
+    reports.forEach(r => {
+      if (!r.createdAt) return;
+      const rd = startOfDay(new Date(r.createdAt));
+      let closest = null, minDiff = Infinity;
+      series.forEach(s => { const d = Math.abs(s.fullDate - rd); if (d < minDiff) { minDiff = d; closest = s; } });
+      if (closest && minDiff < step * 86400000) {
+        closest.total++;
+        if (r.status === 'resolved')  closest.résolus++;
+        if (r.severity === 'critical') closest.critiques++;
+      }
+    });
+    return series;
+  }, [reports, days]);
 
-const buildTypeDistrib = (reports) =>
-  Object.entries(
-    safe(reports).reduce((acc, r) => {
-      const t = r.type || 'other';
-      acc[t] = (acc[t] || 0) + 1;
-      return acc;
-    }, {})
-  ).map(([type, count]) => ({ name: TYPE_LABELS[type] || type, value: count }))
-   .sort((a, b) => b.value - a.value);
+  // Répartition par type
+  const typeData = useMemo(() => {
+    const map = {};
+    inPeriod.forEach(r => { const t = r.type || 'other'; map[t] = (map[t] || 0) + 1; });
+    return Object.entries(map).map(([k, v]) => ({ name: TYPE_LABELS[k] || k, value: v })).sort((a, b) => b.value - a.value);
+  }, [inPeriod]);
 
-const buildStatusDistrib = (reports) =>
-  Object.entries(STATUS_COLORS)
-    .map(([key, cfg]) => ({ name: cfg.name, value: safe(reports).filter(r => r.status === key).length, color: cfg.color }))
-    .filter(d => d.value > 0);
+  // Répartition par statut
+  const statusData = useMemo(() => {
+    const map = {};
+    inPeriod.forEach(r => { const s = r.status || 'new'; map[s] = (map[s] || 0) + 1; });
+    return Object.entries(map).map(([k, v]) => ({ name: STATUS_LABELS[k] || k, value: v, color: STATUS_COLORS[k] || '#6b7280' }));
+  }, [inPeriod]);
 
-// ── Hotspots depuis location.city (corrigé) ──────────────────────────────────
-const buildHotspots = (reports) => {
-  const counts = {};
-  safe(reports).forEach(r => {
-    const city = r.location?.city || r.location?.region || r.location?.address?.split(',')[0]?.trim();
-    if (city) counts[city] = (counts[city] || 0) + 1;
-  });
-  return Object.entries(counts)
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 8)
-    .map(([location, count]) => ({ location, count }));
-};
+  // Par région
+  const regionData = useMemo(() => {
+    const map = {};
+    inPeriod.forEach(r => { const c = r.location?.city || r.location?.region || 'Autre'; map[c] = (map[c] || 0) + 1; });
+    return Object.entries(map).map(([k, v]) => ({ name: k, signalements: v })).sort((a, b) => b.signalements - a.signalements).slice(0, 8);
+  }, [inPeriod]);
 
-// ── Tendances réelles calculées ───────────────────────────────────────────────
-const buildRealTrends = (reports, days) => {
-  const { current, previous } = comparePeriods(reports, days);
-  const curResolved  = current.filter(r => r.status === 'resolved').length;
-  const prevResolved = previous.filter(r => r.status === 'resolved').length;
-  const curRate  = current.length  ? Math.round((curResolved  / current.length)  * 100) : 0;
-  const prevRate = previous.length ? Math.round((prevResolved / previous.length) * 100) : 0;
+  // Radar sévérité × type
+  const radarData = useMemo(() => {
+    const types = [...new Set(reports.map(r => r.type).filter(Boolean))].slice(0, 6);
+    return types.map(t => {
+      const rs = inPeriod.filter(r => r.type === t);
+      return {
+        type: TYPE_LABELS[t] || t,
+        critique: rs.filter(r => r.severity === 'critical').length,
+        élevé:    rs.filter(r => r.severity === 'high').length,
+        moyen:    rs.filter(r => r.severity === 'medium').length,
+      };
+    });
+  }, [inPeriod, reports]);
 
-  const resolvedWithDates = safe(reports).filter(r => r.status === 'resolved' && r.createdAt && r.updatedAt);
-  const avgResolution = resolvedWithDates.length > 0
-    ? Math.round(resolvedWithDates.reduce((s, r) => s + (new Date(r.updatedAt) - new Date(r.createdAt)) / 86400000, 0) / resolvedWithDates.length)
-    : 0;
-  const prevResolvedWithDates = safe(reports).filter(r => {
-    if (r.status !== 'resolved' || !r.createdAt || !r.updatedAt) return false;
-    const d = new Date(r.createdAt);
-    return d >= subDays(new Date(), days * 2) && d < subDays(new Date(), days);
-  });
-  const prevAvg = prevResolvedWithDates.length > 0
-    ? Math.round(prevResolvedWithDates.reduce((s, r) => s + (new Date(r.updatedAt) - new Date(r.createdAt)) / 86400000, 0) / prevResolvedWithDates.length)
-    : avgResolution;
+  // KPIs avec tendance
+  const trend = (curr, prev) => prev === 0 ? (curr > 0 ? 100 : 0) : Math.round(((curr - prev) / prev) * 100);
+  const kpis = [
+    { label: 'Signalements', value: inPeriod.length, sub: `vs ${prevPeriod.length} période préc.`, trend: trend(inPeriod.length, prevPeriod.length), icon: '📋' },
+    { label: 'Résolus', value: inPeriod.filter(r => r.status === 'resolved').length, sub: 'dans la période', trend: trend(inPeriod.filter(r => r.status === 'resolved').length, prevPeriod.filter(r => r.status === 'resolved').length), icon: '✅' },
+    { label: 'Taux résolution', value: inPeriod.length ? `${Math.round(inPeriod.filter(r => r.status === 'resolved').length / inPeriod.length * 100)}%` : '—', sub: 'de la période', icon: '📊' },
+    { label: 'Critiques', value: inPeriod.filter(r => r.severity === 'critical').length, sub: 'à traiter en priorité', trend: trend(inPeriod.filter(r => r.severity === 'critical').length, prevPeriod.filter(r => r.severity === 'critical').length), icon: '🚨' },
+  ];
 
-  const curActive  = current.filter(r => ['new','verified','in_progress'].includes(r.status)).length;
-  const prevActive = previous.filter(r => ['new','verified','in_progress'].includes(r.status)).length;
-
-  return {
-    volume:     { curr: current.length,  prev: previous.length  },
-    active:     { curr: curActive,       prev: prevActive       },
-    resolution: { curr: curRate,         prev: prevRate         },
-    avgTime:    { curr: avgResolution,   prev: prevAvg          },
-  };
-};
-
-
-// ── Tendance mensuelle sur 12 mois ───────────────────────────────────────────
-const buildMonthlyTrend = (reports) => {
-  const months = Array.from({ length: 12 }, (_, i) => {
-    const d = subMonths(new Date(), 11 - i);
-    return {
-      label:       format(d, 'MMM yy'),
-      month:       format(d, 'yyyy-MM'),
-      signalements: 0,
-      résolus:      0,
-      tauxRésolution: 0,
-    };
-  });
-
-  safe(reports).forEach(r => {
-    if (!r.createdAt) return;
-    const m = format(new Date(r.createdAt), 'yyyy-MM');
-    const slot = months.find(mo => mo.month === m);
-    if (!slot) return;
-    slot.signalements++;
-    if (r.status === 'resolved') slot.résolus++;
-  });
-
-  months.forEach(m => {
-    m.tauxRésolution = m.signalements > 0
-      ? Math.round((m.résolus / m.signalements) * 100)
-      : 0;
-  });
-
-  return months;
-};
-
-// ── Taux de résolution par type ───────────────────────────────────────────────
-const buildResolutionByType = (reports) => {
-  const byType = {};
-  safe(reports).forEach(r => {
-    const t = r.type || 'other';
-    if (!byType[t]) byType[t] = { total: 0, resolved: 0 };
-    byType[t].total++;
-    if (r.status === 'resolved') byType[t].resolved++;
-  });
-
-  return Object.entries(byType)
-    .map(([type, data]) => ({
-      name:  TYPE_LABELS[type] || type,
-      total: data.total,
-      taux:  data.total > 0 ? Math.round((data.resolved / data.total) * 100) : 0,
-      resolved: data.resolved,
-    }))
-    .sort((a, b) => b.taux - a.taux)
-    .slice(0, 8);
-};
-
-// ─── Carte KPI ───────────────────────────────────────────────────────────────
-const KPICard = ({ icon, label, value, trend, lowerIsBetter = false, unit = '' }) => {
-  const isUp = trend?.curr >= trend?.prev;
-  const col  = lowerIsBetter
-    ? (isUp ? '#dc2626' : '#16a34a')
-    : (isUp ? '#16a34a' : '#dc2626');
-  const arrow = isUp ? '↑' : '↓';
-  const change = trend ? pctChange(trend.curr, trend.prev) : null;
+  const cardBg = darkMode ? '#1e293b' : '#fff';
+  const cardBorder = darkMode ? '#334155' : '#f1f5f9';
+  const textPrimary = darkMode ? '#f1f5f9' : '#0f172a';
+  const textSecondary = darkMode ? '#94a3b8' : '#6b7280';
+  const gridColor = darkMode ? '#1e293b' : '#f8fafc';
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{label}</span>
-        <span className="text-xl">{icon}</span>
-      </div>
-      <p className="text-3xl font-black text-gray-900">{value}{unit}</p>
-      {change && (
-        <p className="text-xs mt-1.5 font-semibold" style={{ color: col }}>
-          {arrow} {change} <span className="font-normal text-gray-400">vs période précédente</span>
-        </p>
-      )}
-    </div>
-  );
-};
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-// ─── Composant principal ──────────────────────────────────────────────────────
-export const AdvancedAnalytics = ({ stats, reports }) => {
-  const [period, setPeriod] = useState('30d');
-  const periodDays = PERIOD_OPTIONS.find(o => o.value === period)?.days || 30;
-
-  const filtered      = useMemo(() => filterByPeriod(reports, periodDays), [reports, periodDays]);
-  const timeSeries    = useMemo(() => buildTimeSeries(filtered, periodDays), [filtered, periodDays]);
-  const typeDistrib   = useMemo(() => buildTypeDistrib(filtered), [filtered]);
-  const statusDistrib = useMemo(() => buildStatusDistrib(filtered), [filtered]);
-  const hotspots      = useMemo(() => buildHotspots(safe(reports)), [reports]);
-  const trends        = useMemo(() => buildRealTrends(safe(reports), periodDays), [reports, periodDays]);
-
-  // Impact environnemental calculé depuis les résolutions réelles
-  const resolved    = useMemo(() => safe(reports).filter(r => r.status === 'resolved').length, [reports]);
-  const envImpact   = useMemo(() => ({
-    co2:     Math.round(resolved * 2.5),
-    waste:   Math.round(resolved * 15),
-    water:   Math.round(resolved * 1000),
-    energy:  Math.round(resolved * 2915),
-  }), [resolved]);
-
-  // Prévisions réelles : tendance linéaire sur les 14 derniers jours
-  const prediction = useMemo(() => {
-    const last14 = buildTimeSeries(safe(reports), 14);
-    const avg = last14.reduce((s, d) => s + d.signalements, 0) / 14;
-    const first7 = last14.slice(0, 7).reduce((s, d) => s + d.signalements, 0) / 7;
-    const last7  = last14.slice(7).reduce((s, d) => s + d.signalements, 0) / 7;
-    const trend  = last7 > first7 * 1.1 ? '↗ En hausse' : last7 < first7 * 0.9 ? '↘ En baisse' : '→ Stable';
-    return { monthly: Math.round(avg * 30), trend };
-  }, [reports]);
-
-  const monthlyTrend      = useMemo(() => buildMonthlyTrend(safe(reports)),       [reports]);
-  const resolutionByType  = useMemo(() => buildResolutionByType(safe(reports)),   [reports]);
-  const fmt = (n) => (n || 0).toLocaleString('fr-FR');
-
-  return (
-    <div className="space-y-6">
-      {/* Header + sélecteur de période */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-bold text-gray-900">📈 Analytics</h2>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {filtered.length} signalement{filtered.length > 1 ? 's' : ''} sur la période sélectionnée
-          </p>
+      {/* ── Sélecteur de période ── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: textSecondary }}>Période :</span>
+        <div style={{ display: 'flex', gap: 4, background: darkMode ? '#0f172a' : '#f1f5f9', padding: 4, borderRadius: 12 }}>
+          {PERIODS.map(p => (
+            <button key={p.value} onClick={() => setPeriod(p.value)} style={{
+              padding: '5px 14px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+              background: period === p.value ? '#10b981' : 'transparent',
+              color: period === p.value ? '#fff' : textSecondary, transition: 'all 0.15s',
+            }}>{p.label}</button>
+          ))}
         </div>
-        <div className="flex items-center gap-2">
-          <select
-            value={period}
-            onChange={e => setPeriod(e.target.value)}
-            className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none bg-white"
-          >
-            {PERIOD_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
+        <span style={{ fontSize: 13, fontWeight: 700, color: textSecondary, marginLeft: 12 }}>Graphique :</span>
+        <div style={{ display: 'flex', gap: 4, background: darkMode ? '#0f172a' : '#f1f5f9', padding: 4, borderRadius: 12 }}>
+          {[{ v: 'area', l: '〰 Aire' }, { v: 'line', l: '↗ Ligne' }, { v: 'bar', l: '▮ Barres' }].map(c => (
+            <button key={c.v} onClick={() => setChartType(c.v)} style={{
+              padding: '5px 12px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+              background: chartType === c.v ? '#3b82f6' : 'transparent',
+              color: chartType === c.v ? '#fff' : textSecondary, transition: 'all 0.15s',
+            }}>{c.l}</button>
+          ))}
         </div>
       </div>
 
-      {/* KPIs avec vraies comparaisons */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard icon="📋" label="Signalements"    value={trends.volume.curr}      trend={trends.volume}     />
-        <KPICard icon="🚨" label="Actifs"           value={trends.active.curr}      trend={trends.active}     lowerIsBetter />
-        <KPICard icon="✅" label="Taux résolution"  value={`${trends.resolution.curr}`} unit="%" trend={trends.resolution} />
-        <KPICard icon="⏱️" label="Délai moyen"      value={trends.avgTime.curr}     unit="j"  trend={trends.avgTime}    lowerIsBetter />
+      {/* ── KPIs ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
+        {kpis.map(k => <KpiCard key={k.label} {...k} darkMode={darkMode} />)}
       </div>
 
-      {/* Graphiques principaux */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* Évolution temporelle */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <h3 className="text-sm font-bold text-gray-700 mb-4 uppercase tracking-wider">Évolution temporelle</h3>
-          <div style={{ height: 260 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={timeSeries} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="gBlue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.15} />
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="gGreen" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.15} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
-                <Tooltip content={<CustomTooltip />} />
-                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
-                <Area type="monotone" dataKey="signalements" name="Signalements" stroke="#3b82f6" fill="url(#gBlue)" strokeWidth={2} dot={false} />
-                <Area type="monotone" dataKey="résolus"      name="Résolus"      stroke="#10b981" fill="url(#gGreen)" strokeWidth={2} dot={false} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+      {/* ── Série temporelle ── */}
+      <div style={{ background: cardBg, borderRadius: 18, border: `1px solid ${cardBorder}`, padding: '20px 20px 8px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+        <h3 style={{ fontSize: 15, fontWeight: 800, color: textPrimary, margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ width: 28, height: 28, background: '#eff6ff', borderRadius: 8, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 15 }}>📈</span>
+          Évolution sur {days} jours
+        </h3>
+        <ResponsiveContainer width="100%" height={220}>
+          {chartType === 'area' ? (
+            <AreaChart data={timeSeries} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+              <defs>
+                <linearGradient id="gradTotal" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/><stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/></linearGradient>
+                <linearGradient id="gradRes"   x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/><stop offset="95%" stopColor="#10b981" stopOpacity={0}/></linearGradient>
+                <linearGradient id="gradCrit"  x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#ef4444" stopOpacity={0.25}/><stop offset="95%" stopColor="#ef4444" stopOpacity={0}/></linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+              <XAxis dataKey="date" tick={{ fontSize: 10, fill: textSecondary }} />
+              <YAxis tick={{ fontSize: 10, fill: textSecondary }} allowDecimals={false} />
+              <Tooltip content={<TooltipStyle />} />
+              <Legend iconSize={8} wrapperStyle={{ fontSize: 12 }} />
+              <Area type="monotone" dataKey="total"    name="Total"    stroke="#3b82f6" fill="url(#gradTotal)" strokeWidth={2} dot={false} />
+              <Area type="monotone" dataKey="résolus"  name="Résolus"  stroke="#10b981" fill="url(#gradRes)"   strokeWidth={2} dot={false} />
+              <Area type="monotone" dataKey="critiques" name="Critiques" stroke="#ef4444" fill="url(#gradCrit)"  strokeWidth={1.5} dot={false} strokeDasharray="4 2" />
+            </AreaChart>
+          ) : chartType === 'line' ? (
+            <LineChart data={timeSeries} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+              <XAxis dataKey="date" tick={{ fontSize: 10, fill: textSecondary }} />
+              <YAxis tick={{ fontSize: 10, fill: textSecondary }} allowDecimals={false} />
+              <Tooltip content={<TooltipStyle />} />
+              <Legend iconSize={8} wrapperStyle={{ fontSize: 12 }} />
+              <Line type="monotone" dataKey="total"    name="Total"    stroke="#3b82f6" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
+              <Line type="monotone" dataKey="résolus"  name="Résolus"  stroke="#10b981" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+              <Line type="monotone" dataKey="critiques" name="Critiques" stroke="#ef4444" strokeWidth={1.5} dot={false} strokeDasharray="5 3" />
+            </LineChart>
+          ) : (
+            <BarChart data={timeSeries} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+              <XAxis dataKey="date" tick={{ fontSize: 10, fill: textSecondary }} />
+              <YAxis tick={{ fontSize: 10, fill: textSecondary }} allowDecimals={false} />
+              <Tooltip content={<TooltipStyle />} />
+              <Legend iconSize={8} wrapperStyle={{ fontSize: 12 }} />
+              <Bar dataKey="total"    name="Total"    fill="#3b82f6" radius={[3,3,0,0]} />
+              <Bar dataKey="résolus"  name="Résolus"  fill="#10b981" radius={[3,3,0,0]} />
+              <Bar dataKey="critiques" name="Critiques" fill="#ef4444" radius={[3,3,0,0]} />
+            </BarChart>
+          )}
+        </ResponsiveContainer>
+      </div>
 
+      {/* ── Grille : Type + Statut ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         {/* Répartition par type */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <h3 className="text-sm font-bold text-gray-700 mb-4 uppercase tracking-wider">Par type de pollution</h3>
-          {typeDistrib.length === 0 ? (
-            <div className="flex items-center justify-center h-[260px] text-gray-400 text-sm">Aucune donnée sur la période</div>
-          ) : (
-            <div style={{ height: 260 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={typeDistrib} cx="50%" cy="50%" outerRadius={90} innerRadius={45} dataKey="value" paddingAngle={2}>
-                    {typeDistrib.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-                  </Pie>
-                  <Tooltip formatter={(v) => [`${v} signalement${v > 1 ? 's' : ''}`, '']} />
-                  <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          )}
+        <div style={{ background: cardBg, borderRadius: 18, border: `1px solid ${cardBorder}`, padding: 20, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+          <h3 style={{ fontSize: 14, fontWeight: 800, color: textPrimary, margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: 7 }}>
+            <span style={{ fontSize: 16 }}>🗂️</span> Par type
+          </h3>
+          <ResponsiveContainer width="100%" height={200}>
+            <PieChart>
+              <Pie data={typeData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={45} outerRadius={75} paddingAngle={3}>
+                {typeData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+              </Pie>
+              <Tooltip formatter={(v) => [v, 'Signalements']} />
+              <Legend iconType="circle" iconSize={7} wrapperStyle={{ fontSize: 11 }} />
+            </PieChart>
+          </ResponsiveContainer>
         </div>
-      </div>
 
-      {/* Graphiques secondaires */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Répartition par statut */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <h3 className="text-sm font-bold text-gray-700 mb-4 uppercase tracking-wider">Par statut</h3>
-          {statusDistrib.length === 0 ? (
-            <div className="flex items-center justify-center h-[220px] text-gray-400 text-sm">Aucune donnée</div>
-          ) : (
-            <div style={{ height: 220 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={statusDistrib} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#6b7280' }} tickLine={false} axisLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="value" name="Signalements" radius={[6, 6, 0, 0]}>
-                    {statusDistrib.map((e, i) => <Cell key={i} fill={e.color} />)}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </div>
-
-        {/* Hotspots — depuis location.city (corrigé) */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <h3 className="text-sm font-bold text-gray-700 mb-4 uppercase tracking-wider">Top zones d'intervention</h3>
-          {hotspots.length === 0 ? (
-            <div className="flex items-center justify-center h-[220px] text-gray-400 text-sm">Aucune donnée de localisation</div>
-          ) : (
-            <div style={{ height: 220 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={hotspots} layout="vertical" margin={{ top: 4, right: 16, left: 10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" horizontal={false} />
-                  <XAxis type="number" tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
-                  <YAxis type="category" dataKey="location" tick={{ fontSize: 11, fill: '#6b7280' }} tickLine={false} axisLine={false} width={80} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="count" name="Signalements" fill="#059669" radius={[0, 6, 6, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
+        <div style={{ background: cardBg, borderRadius: 18, border: `1px solid ${cardBorder}`, padding: 20, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+          <h3 style={{ fontSize: 14, fontWeight: 800, color: textPrimary, margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: 7 }}>
+            <span style={{ fontSize: 16 }}>📊</span> Par statut
+          </h3>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={statusData} layout="vertical" margin={{ top: 0, right: 20, left: 0, bottom: 0 }}>
+              <XAxis type="number" tick={{ fontSize: 10, fill: textSecondary }} allowDecimals={false} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: textSecondary }} width={72} />
+              <Tooltip content={<TooltipStyle />} />
+              <Bar dataKey="value" name="Signalements" radius={[0, 6, 6, 0]}>
+                {statusData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </div>
 
+      {/* ── Par région + Radar ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: 16 }}>
+        {/* Top régions */}
+        <div style={{ background: cardBg, borderRadius: 18, border: `1px solid ${cardBorder}`, padding: 20, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+          <h3 style={{ fontSize: 14, fontWeight: 800, color: textPrimary, margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: 7 }}>
+            <span style={{ fontSize: 16 }}>📍</span> Top villes / régions
+          </h3>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={regionData} margin={{ top: 0, right: 10, left: -20, bottom: 20 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+              <XAxis dataKey="name" tick={{ fontSize: 10, fill: textSecondary }} angle={-30} textAnchor="end" />
+              <YAxis tick={{ fontSize: 10, fill: textSecondary }} allowDecimals={false} />
+              <Tooltip content={<TooltipStyle />} />
+              <Bar dataKey="signalements" name="Signalements" fill="#10b981" radius={[6, 6, 0, 0]}>
+                {regionData.map((_, i) => <Cell key={i} fill={`hsl(${152 + i * 12}, 65%, ${50 - i * 3}%)`} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
 
-      {/* Tendance mensuelle 12 mois + Taux résolution par type */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-
-        {/* Tendance mensuelle */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Tendance 12 mois</h3>
-            <span className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded-lg">Signalements vs Résolus</span>
-          </div>
-          <div style={{ height: 260 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={monthlyTrend} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="gLine1" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="#6366f1" />
-                    <stop offset="100%" stopColor="#3b82f6" />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
-                <Tooltip content={<CustomTooltip />} />
-                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
-                <Line
-                  type="monotone" dataKey="signalements" name="Signalements"
-                  stroke="#6366f1" strokeWidth={2.5} dot={{ r: 4, fill: '#6366f1', strokeWidth: 0 }}
-                  activeDot={{ r: 6 }}
-                />
-                <Line
-                  type="monotone" dataKey="résolus" name="Résolus"
-                  stroke="#10b981" strokeWidth={2.5} dot={{ r: 4, fill: '#10b981', strokeWidth: 0 }}
-                  strokeDasharray="5 3"
-                  activeDot={{ r: 6 }}
-                />
-              </LineChart>
+        {/* Radar sévérité × type */}
+        {radarData.length > 0 && (
+          <div style={{ background: cardBg, borderRadius: 18, border: `1px solid ${cardBorder}`, padding: 20, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+            <h3 style={{ fontSize: 14, fontWeight: 800, color: textPrimary, margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: 7 }}>
+              <span style={{ fontSize: 16 }}>🎯</span> Sévérité par type
+            </h3>
+            <ResponsiveContainer width="100%" height={220}>
+              <RadarChart data={radarData} margin={{ top: 10, right: 20, bottom: 10, left: 20 }}>
+                <PolarGrid stroke={darkMode ? '#334155' : '#f1f5f9'} />
+                <PolarAngleAxis dataKey="type" tick={{ fontSize: 9, fill: textSecondary }} />
+                <Radar name="Critique" dataKey="critique" stroke="#ef4444" fill="#ef4444" fillOpacity={0.2} strokeWidth={2} />
+                <Radar name="Élevé"    dataKey="élevé"    stroke="#f97316" fill="#f97316" fillOpacity={0.15} strokeWidth={1.5} />
+                <Radar name="Moyen"    dataKey="moyen"    stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.1}  strokeWidth={1} />
+                <Legend iconSize={7} wrapperStyle={{ fontSize: 11 }} />
+                <Tooltip content={<TooltipStyle />} />
+              </RadarChart>
             </ResponsiveContainer>
           </div>
-        </div>
-
-        {/* Taux de résolution par type */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Taux de résolution par type</h3>
-            <span className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded-lg">% résolu</span>
-          </div>
-          {resolutionByType.length === 0 ? (
-            <div className="flex items-center justify-center h-[260px] text-gray-400 text-sm">Aucune donnée</div>
-          ) : (
-            <div style={{ height: 260 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={resolutionByType} layout="vertical" margin={{ top: 4, right: 40, left: 10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" horizontal={false} />
-                  <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} tickFormatter={v => `${v}%`} />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: '#6b7280' }} tickLine={false} axisLine={false} width={90} />
-                  <Tooltip formatter={(v, n) => [`${v}%`, 'Taux résolution']} />
-                  <ReferenceLine x={50} stroke="#e5e7eb" strokeDasharray="4 2" />
-                  <ReferenceLine x={80} stroke="#bbf7d0" strokeDasharray="4 2" />
-                  <Bar dataKey="taux" name="Taux résolution" radius={[0, 8, 8, 0]}>
-                    {resolutionByType.map((e, i) => (
-                      <Cell key={i} fill={e.taux >= 80 ? '#10b981' : e.taux >= 50 ? '#f59e0b' : '#ef4444'} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-          {/* Légende couleurs */}
-          <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
-            <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> ≥ 80% excellent</div>
-            <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full bg-amber-400" /> ≥ 50% correct</div>
-            <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full bg-red-400" /> &lt; 50% à améliorer</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Impact environnemental + prévisions réelles */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <h3 className="text-sm font-bold text-gray-700 mb-4 uppercase tracking-wider">Impact environnemental estimé</h3>
-          <p className="text-xs text-gray-400 mb-4">Basé sur {resolved} signalement{resolved > 1 ? 's' : ''} résolu{resolved > 1 ? 's' : ''} — coefficients moyens secteur minier</p>
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { icon: '🌿', label: 'CO₂ évité',         value: `${fmt(envImpact.co2)} t`,    bg: 'bg-green-50',  text: 'text-green-700'  },
-              { icon: '🗑️', label: 'Déchets traités',   value: `${fmt(envImpact.waste)} t`,  bg: 'bg-blue-50',   text: 'text-blue-700'   },
-              { icon: '💧', label: 'Eau protégée',      value: `${fmt(envImpact.water)} m³`, bg: 'bg-sky-50',    text: 'text-sky-700'    },
-              { icon: '⚡', label: 'Énergie économisée', value: `${fmt(envImpact.energy)} kWh`, bg: 'bg-amber-50', text: 'text-amber-700' },
-            ].map(m => (
-              <div key={m.label} className={`${m.bg} rounded-xl p-3 text-center border border-white`}>
-                <div className="text-2xl mb-1">{m.icon}</div>
-                <p className={`text-sm font-black ${m.text}`}>{m.value}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{m.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Prévisions réelles */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <h3 className="text-sm font-bold text-gray-700 mb-4 uppercase tracking-wider">Prévisions & tendances</h3>
-          <div className="space-y-3">
-            <div className="p-4 bg-purple-50 rounded-xl border border-purple-100">
-              <p className="text-xs font-semibold text-purple-600 mb-1">Prévision mois prochain</p>
-              <p className="text-2xl font-black text-purple-800">{prediction.monthly} signalements</p>
-              <p className="text-xs text-purple-500 mt-0.5">Basé sur la moyenne journalière des 14 derniers jours</p>
-            </div>
-            <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
-              <p className="text-xs font-semibold text-emerald-600 mb-1">Tendance actuelle</p>
-              <p className="text-lg font-bold text-emerald-800">{prediction.trend}</p>
-              <p className="text-xs text-emerald-500 mt-0.5">Comparaison semaine 1 vs semaine 2 des 14 derniers jours</p>
-            </div>
-            <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
-              <p className="text-xs font-semibold text-blue-600 mb-2">Zones prioritaires</p>
-              <div className="space-y-1">
-                {hotspots.slice(0, 3).map((h, i) => (
-                  <div key={i} className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />
-                      <span className="text-blue-900 font-medium">{h.location}</span>
-                    </div>
-                    <span className="text-blue-600 font-bold text-xs">{h.count} signalement{h.count > 1 ? 's' : ''}</span>
-                  </div>
-                ))}
-                {hotspots.length === 0 && <p className="text-xs text-blue-400 italic">Aucune zone identifiée</p>}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Analyse comparative réelle */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-        <h3 className="text-sm font-bold text-gray-700 mb-4 uppercase tracking-wider">Analyse comparative — période en cours vs précédente</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h4 className="text-xs font-semibold text-gray-400 mb-3">Performance par zone</h4>
-            <div className="space-y-2">
-              {hotspots.length === 0 ? (
-                <p className="text-sm text-gray-400 italic">Aucune donnée de localisation disponible</p>
-              ) : hotspots.slice(0, 5).map((z, i) => {
-                const max = hotspots[0].count;
-                const pct = Math.round((z.count / max) * 100);
-                return (
-                  <div key={i} className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-xl">
-                    <span className="text-xs font-semibold text-gray-500 w-4">{i + 1}</span>
-                    <span className="text-sm font-medium text-gray-700 flex-1 truncate">{z.location}</span>
-                    <div className="w-20 bg-gray-200 rounded-full h-1.5">
-                      <div className="bg-emerald-500 h-1.5 rounded-full" style={{ width: `${pct}%` }} />
-                    </div>
-                    <span className="text-xs font-bold text-gray-600 w-4 text-right">{z.count}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-          <div>
-            <h4 className="text-xs font-semibold text-gray-400 mb-3">Indicateurs clés — comparaison réelle</h4>
-            <div className="space-y-2">
-              {[
-                { label: 'Signalements reçus',   curr: trends.volume.curr,     prev: trends.volume.prev,     unit: '',  lower: false },
-                { label: 'Taux de résolution',   curr: trends.resolution.curr, prev: trends.resolution.prev, unit: '%', lower: false },
-                { label: 'Délai moyen résolution',curr: trends.avgTime.curr,   prev: trends.avgTime.prev,    unit: 'j', lower: true  },
-                { label: 'Signalements actifs',  curr: trends.active.curr,     prev: trends.active.prev,     unit: '',  lower: true  },
-              ].map((row, i) => {
-                const change = pctChange(row.curr, row.prev);
-                const isUp   = row.curr >= row.prev;
-                const col    = row.lower ? (isUp ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700')
-                                         : (isUp ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700');
-                return (
-                  <div key={i} className="flex items-center justify-between p-2.5 bg-gray-50 rounded-xl">
-                    <span className="text-sm text-gray-600">{row.label}</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-gray-800">{row.curr}{row.unit}</span>
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${col}`}>{change}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
-};
+}

@@ -726,38 +726,112 @@ export default function Dashboard() {
               ].map((s, i) => (
                 <div key={s.label} style={{
                   background: darkMode ? '#1e293b' : '#fff',
-                  borderRadius: 18,
-                  padding: 20,
+                  borderRadius: 18, padding: 20,
                   border: `1px solid ${darkMode ? '#334155' : '#f3f4f6'}`,
                   boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
                   animation: `statCardIn 0.4s ease ${i * 0.08}s both`,
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                  cursor: 'default',
+                  transition: 'transform 0.2s, box-shadow 0.2s', cursor: 'default',
                 }}
                 onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${s.color}22`; }}
                 onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.06)'; }}
                 >
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
-                    <span style={{
-                      width: 44, height: 44, borderRadius: 14,
-                      background: s.bg,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 22,
-                      boxShadow: `0 4px 12px ${s.color}22`,
-                      transition: 'transform 0.3s cubic-bezier(0.34,1.56,0.64,1)',
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.15) rotate(-5deg)'}
-                    onMouseLeave={e => e.currentTarget.style.transform = 'scale(1) rotate(0)'}
+                    <span style={{ width: 44, height: 44, borderRadius: 14, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, boxShadow: `0 4px 12px ${s.color}22`, transition: 'transform 0.3s cubic-bezier(0.34,1.56,0.64,1)' }}
+                      onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.15) rotate(-5deg)'}
+                      onMouseLeave={e => e.currentTarget.style.transform = 'scale(1) rotate(0)'}
                     >{s.icon}</span>
                     <span style={{ fontSize: 11, color: darkMode ? '#64748b' : '#9ca3af', background: darkMode ? '#0f172a' : '#f9fafb', padding: '2px 8px', borderRadius: 20 }}>{s.sub}</span>
                   </div>
                   <p style={{ fontSize: 34, fontWeight: 900, color: darkMode ? '#f1f5f9' : '#111827', fontVariantNumeric: 'tabular-nums', margin: 0 }}>{s.value}</p>
                   <p style={{ fontSize: 13, color: darkMode ? '#94a3b8' : '#6b7280', marginTop: 4 }}>{s.label}</p>
+
+                  {/* Mini sparkline simulée */}
                   <div style={{ marginTop: 12, height: 3, borderRadius: 3, background: darkMode ? '#334155' : '#f3f4f6', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', borderRadius: 3, background: `linear-gradient(90deg, ${s.color}, ${s.color}99)`, width: s.value > 0 ? '100%' : '0%', transition: 'width 1s ease', }} />
+                    <div style={{ height: '100%', borderRadius: 3, background: `linear-gradient(90deg, ${s.color}, ${s.color}99)`, width: s.value > 0 ? '100%' : '0%', transition: 'width 1s ease' }} />
                   </div>
                 </div>
               ))}
+            </div>
+
+            {/* ── Top 3 signalements récents + Taux de résolution ── */}
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
+              {/* Signalements récents */}
+              <div style={{ background: darkMode ? '#1e293b' : '#fff', borderRadius: 18, border: `1px solid ${darkMode ? '#334155' : '#f1f5f9'}`, padding: '18px 20px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 800, color: darkMode ? '#f1f5f9' : '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: 7 }}>
+                    <span style={{ fontSize: 16 }}>🕐</span> Signalements récents
+                  </h3>
+                  <button onClick={() => handleTabChange('reports')} style={{ fontSize: 11, color: '#10b981', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer' }}>
+                    Voir tout →
+                  </button>
+                </div>
+                {memoizedReports.slice(0, 5).map((r, i) => {
+                  const sevColors = { critical: '#dc2626', high: '#f97316', medium: '#f59e0b', low: '#22c55e' };
+                  const staLabels = { new: 'Nouveau', verified: 'Vérifié', in_progress: 'En cours', resolved: 'Résolu', rejected: 'Rejeté' };
+                  const typeIcons = { water_pollution: '💧', air_pollution: '💨', soil_contamination: '🟤', waste_deposit: '🗑️', dust: '🌫️', abandoned_site: '🏚️', noise_pollution: '🔊', other: '⚠️' };
+                  const c = sevColors[r.severity] || '#6b7280';
+                  return (
+                    <div key={r._id || i} onClick={() => handleTabChange('reports', r._id || r.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 12, cursor: 'pointer', marginBottom: 4, transition: 'background 0.15s' }}
+                      onMouseEnter={e => e.currentTarget.style.background = darkMode ? '#0f172a' : '#f8fafc'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <span style={{ fontSize: 18, flexShrink: 0 }}>{typeIcons[r.type] || '⚠️'}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 12, fontWeight: 700, color: darkMode ? '#e2e8f0' : '#1e293b', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {r.title || r.description?.substring(0, 50) || 'Sans titre'}
+                        </p>
+                        <p style={{ fontSize: 11, color: darkMode ? '#64748b' : '#94a3b8', margin: '2px 0 0' }}>{r.location?.city || r.location?.address?.substring(0, 30) || '—'}</p>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3, flexShrink: 0 }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 99, background: `${c}18`, color: c }}>{r.severity}</span>
+                        <span style={{ fontSize: 10, color: darkMode ? '#475569' : '#9ca3af' }}>{staLabels[r.status] || r.status}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+                {memoizedReports.length === 0 && (
+                  <div style={{ textAlign: 'center', padding: '20px 0', color: darkMode ? '#475569' : '#9ca3af', fontSize: 13 }}>Aucun signalement</div>
+                )}
+              </div>
+
+              {/* Taux de résolution + jauge */}
+              <div style={{ background: darkMode ? '#1e293b' : '#fff', borderRadius: 18, border: `1px solid ${darkMode ? '#334155' : '#f1f5f9'}`, padding: '18px 20px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <h3 style={{ fontSize: 14, fontWeight: 800, color: darkMode ? '#f1f5f9' : '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: 7 }}>
+                  <span style={{ fontSize: 16 }}>🎯</span> Résolution
+                </h3>
+
+                {/* Grande jauge circulaire SVG */}
+                {(() => {
+                  const rate = Math.round(memoizedStats?.overview?.resolutionRate || 0);
+                  const r = 42, circ = 2 * Math.PI * r;
+                  const dash = (rate / 100) * circ;
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                      <svg width="110" height="110" viewBox="0 0 110 110">
+                        <circle cx="55" cy="55" r={r} fill="none" stroke={darkMode ? '#334155' : '#f1f5f9'} strokeWidth="10" />
+                        <circle cx="55" cy="55" r={r} fill="none" stroke="#10b981" strokeWidth="10"
+                          strokeDasharray={`${dash} ${circ - dash}`} strokeLinecap="round"
+                          transform="rotate(-90 55 55)" style={{ transition: 'stroke-dasharray 1.2s cubic-bezier(0.22,1,0.36,1)' }} />
+                        <text x="55" y="51" textAnchor="middle" style={{ fontSize: 22, fontWeight: 900, fill: darkMode ? '#f1f5f9' : '#0f172a', fontFamily: 'system-ui' }}>{rate}%</text>
+                        <text x="55" y="66" textAnchor="middle" style={{ fontSize: 9, fill: darkMode ? '#64748b' : '#9ca3af', fontFamily: 'system-ui' }}>résolution</text>
+                      </svg>
+                      {[
+                        { label: 'Résolus', value: memoizedStats?.overview?.resolvedReports || 0, color: '#10b981' },
+                        { label: 'Actifs',  value: memoizedStats?.overview?.activeReports   || 0, color: '#3b82f6' },
+                        { label: 'Urgents', value: urgentCount,                                    color: '#ef4444' },
+                      ].map(s => (
+                        <div key={s.label} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{ width: 8, height: 8, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
+                            <span style={{ fontSize: 12, color: darkMode ? '#94a3b8' : '#6b7280' }}>{s.label}</span>
+                          </div>
+                          <span style={{ fontSize: 13, fontWeight: 800, color: s.color }}>{s.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
 
             {/* Flux temps réel */}
