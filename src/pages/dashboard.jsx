@@ -134,7 +134,7 @@ const NavItem = ({ tab, active, onClick, badge, collapsed = false }) => {
         borderRadius: 10, fontSize: 17, position: 'relative',
         background: active
           ? 'linear-gradient(135deg, #10b981, #059669)'
-          : hovered ? '#f3f4f6' : '#f9fafb',
+          : hovered ? (isDark ? '#334155' : '#f3f4f6') : (isDark ? '#1e293b' : '#f9fafb'),
         boxShadow: active ? '0 4px 12px rgba(16,185,129,0.3)' : 'none',
         transform: active ? 'scale(1.08)' : hovered ? 'scale(1.04)' : 'scale(1)',
         transition: 'all 0.2s cubic-bezier(0.34,1.56,0.64,1)',
@@ -578,16 +578,16 @@ export default function Dashboard() {
             {/* Stats principales */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: 'Total signalements', value: memoizedStats?.overview?.totalReports || 0, icon: '📋', color: '#3b82f6', bg: '#eff6ff', sub: `${memoizedStats?.overview?.activeReports || 0} actifs` },
-                { label: 'Résolus',            value: memoizedStats?.overview?.resolvedReports || 0, icon: '✅', color: '#10b981', bg: '#ecfdf5', sub: `${Math.round(memoizedStats?.overview?.resolutionRate || 0)}% taux` },
-                { label: 'Urgents',            value: urgentCount,  icon: '🚨', color: '#ef4444', bg: '#fef2f2', sub: 'Nécessitent action' },
-                { label: 'Citoyens',           value: memoizedStats?.overview?.totalUsers || 0, icon: '👥', color: '#8b5cf6', bg: '#f5f3ff', sub: 'inscrits' },
+                { label: 'Total signalements', value: memoizedStats?.overview?.totalReports || 0, icon: '📋', color: '#3b82f6', bg: darkMode ? 'rgba(30,58,138,0.25)' : '#eff6ff', sub: `${memoizedStats?.overview?.activeReports || 0} actifs` },
+                { label: 'Résolus',            value: memoizedStats?.overview?.resolvedReports || 0, icon: '✅', color: '#10b981', bg: darkMode ? 'rgba(6,78,59,0.25)' : '#ecfdf5', sub: `${Math.round(memoizedStats?.overview?.resolutionRate || 0)}% taux` },
+                { label: 'Urgents',            value: urgentCount,  icon: '🚨', color: '#ef4444', bg: darkMode ? 'rgba(69,10,10,0.3)' : '#fef2f2', sub: 'Nécessitent action' },
+                { label: 'Citoyens',           value: memoizedStats?.overview?.totalUsers || 0, icon: '👥', color: '#8b5cf6', bg: darkMode ? 'rgba(46,16,101,0.25)' : '#f5f3ff', sub: 'inscrits' },
               ].map((s, i) => (
                 <div key={s.label} style={{
-                  background: '#fff',
+                  background: darkMode ? '#1e293b' : '#fff',
                   borderRadius: 18,
                   padding: 20,
-                  border: '1px solid #f3f4f6',
+                  border: `1px solid ${darkMode ? '#334155' : '#f3f4f6'}`,
                   boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
                   animation: `statCardIn 0.4s ease ${i * 0.08}s both`,
                   transition: 'transform 0.2s, box-shadow 0.2s',
@@ -608,11 +608,11 @@ export default function Dashboard() {
                     onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.15) rotate(-5deg)'}
                     onMouseLeave={e => e.currentTarget.style.transform = 'scale(1) rotate(0)'}
                     >{s.icon}</span>
-                    <span style={{ fontSize: 11, color: '#9ca3af', background: '#f9fafb', padding: '2px 8px', borderRadius: 20 }}>{s.sub}</span>
+                    <span style={{ fontSize: 11, color: darkMode ? '#64748b' : '#9ca3af', background: darkMode ? '#0f172a' : '#f9fafb', padding: '2px 8px', borderRadius: 20 }}>{s.sub}</span>
                   </div>
-                  <p style={{ fontSize: 34, fontWeight: 900, color: '#111827', fontVariantNumeric: 'tabular-nums', margin: 0 }}>{s.value}</p>
-                  <p style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>{s.label}</p>
-                  <div style={{ marginTop: 12, height: 3, borderRadius: 3, background: '#f3f4f6', overflow: 'hidden' }}>
+                  <p style={{ fontSize: 34, fontWeight: 900, color: darkMode ? '#f1f5f9' : '#111827', fontVariantNumeric: 'tabular-nums', margin: 0 }}>{s.value}</p>
+                  <p style={{ fontSize: 13, color: darkMode ? '#94a3b8' : '#6b7280', marginTop: 4 }}>{s.label}</p>
+                  <div style={{ marginTop: 12, height: 3, borderRadius: 3, background: darkMode ? '#334155' : '#f3f4f6', overflow: 'hidden' }}>
                     <div style={{ height: '100%', borderRadius: 3, background: `linear-gradient(90deg, ${s.color}, ${s.color}99)`, width: s.value > 0 ? '100%' : '0%', transition: 'width 1s ease', }} />
                   </div>
                 </div>

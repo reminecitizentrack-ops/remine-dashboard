@@ -700,3 +700,73 @@ html.dark button.bg-blue-600          { background-color: #2563eb !important; co
 /* Badges inline avec style= (non couverts par les classes) */
 html.dark span[style*="background:#f"],
 html.dark span[style*="background: #f"] { filter: brightness(0.4) saturate(1.5); }
+
+/* ── Inline styles : divs/sections avec fond blanc ou clair ── */
+html.dark div[style*="background: #fff"],
+html.dark div[style*="background:#fff"],
+html.dark div[style*="background: white"],
+html.dark div[style*="background:white"],
+html.dark div[style*="background-color: #fff"],
+html.dark div[style*="background-color:#fff"],
+html.dark div[style*="background-color: white"],
+html.dark div[style*="background-color:white"] {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+html.dark div[style*="background: #f9fafb"],
+html.dark div[style*="background:#f9fafb"],
+html.dark div[style*="background: #f3f4f6"],
+html.dark div[style*="background:#f3f4f6"],
+html.dark div[style*="background: #f1f5f9"],
+html.dark div[style*="background:#f1f5f9"] {
+  background: #0f172a !important;
+}
+
+/* ── Inline styles : textes sombres ── */
+html.dark div[style*="color: #111827"],
+html.dark div[style*="color:#111827"],
+html.dark p[style*="color: #111827"],
+html.dark p[style*="color:#111827"]   { color: #f1f5f9 !important; }
+
+html.dark div[style*="color: #1f2937"],
+html.dark div[style*="color:#1f2937"],
+html.dark p[style*="color: #1f2937"],
+html.dark p[style*="color:#1f2937"]   { color: #e2e8f0 !important; }
+
+html.dark div[style*="color: #374151"],
+html.dark div[style*="color:#374151"],
+html.dark p[style*="color: #374151"],
+html.dark p[style*="color:#374151"]   { color: #cbd5e1 !important; }
+
+html.dark div[style*="color: #6b7280"],
+html.dark div[style*="color:#6b7280"],
+html.dark p[style*="color: #6b7280"],
+html.dark p[style*="color:#6b7280"],
+html.dark span[style*="color: #6b7280"],
+html.dark span[style*="color:#6b7280"] { color: #94a3b8 !important; }
+
+html.dark div[style*="color: #9ca3af"],
+html.dark div[style*="color:#9ca3af"],
+html.dark span[style*="color: #9ca3af"],
+html.dark span[style*="color:#9ca3af"] { color: #64748b !important; }
+
+/* ── Spinner de navigation (_app.jsx) ── */
+html.dark div[style*="background: '#fff'"],
+html.dark div[style*="background:'#fff'"] {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+/* ── Bordures inline claires ── */
+html.dark div[style*="border: 1px solid #f3f4f6"],
+html.dark div[style*="border: 1px solid #e5e7eb"],
+html.dark div[style*="border: 1px solid #d1d5db"] {
+  border-color: #334155 !important;
+}
+
+/* ── Fonds de barres de progression inline ── */
+html.dark div[style*="background: #f3f4f6"],
+html.dark div[style*="background:#f3f4f6"] {
+  background: #334155 !important;
+}

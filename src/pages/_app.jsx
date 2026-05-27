@@ -87,11 +87,14 @@ export default function App({ Component, pageProps }) {
         )}
 
         {/* Spinner discret */}
-        {loading && (
+        {loading && (() => {
+          const isDarkMode = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
+          return (
           <div style={{
             position: 'fixed', bottom: 24, right: 24,
             zIndex: 9999, display: 'flex', alignItems: 'center', gap: 8,
-            background: '#fff', border: '1px solid #e5e7eb',
+            background: isDarkMode ? '#1e293b' : '#fff',
+            border: `1px solid ${isDarkMode ? '#334155' : '#e5e7eb'}`,
             borderRadius: 12, padding: '8px 14px',
             boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
             animation: 'fadeInUp 0.2s ease',
@@ -102,9 +105,10 @@ export default function App({ Component, pageProps }) {
               borderTopColor: '#10b981',
               animation: 'spin 0.7s linear infinite',
             }} />
-            <span style={{ fontSize: 13, color: '#6b7280', fontWeight: 500 }}>Chargement…</span>
+            <span style={{ fontSize: 13, color: isDarkMode ? '#94a3b8' : '#6b7280', fontWeight: 500 }}>Chargement…</span>
           </div>
-        )}
+          );
+        })()}
 
         {/* Page avec transition fade */}
         <div style={{
