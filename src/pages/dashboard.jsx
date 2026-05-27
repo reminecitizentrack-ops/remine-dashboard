@@ -89,10 +89,26 @@ const StatPill = ({ label, value, color = 'gray' }) => {
 
 const NavItem = ({ tab, active, onClick, badge, collapsed = false }) => {
   const [hovered, setHovered] = React.useState(false);
+  const [ripples, setRipples] = React.useState([]);
+  const [iconKey, setIconKey] = React.useState(0);
   const isDark = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
+
+  const handleClick = (e) => {
+    // Ripple effect
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const id = Date.now();
+    setRipples(r => [...r, { id, x, y }]);
+    setTimeout(() => setRipples(r => r.filter(rp => rp.id !== id)), 500);
+    // Bounce icon
+    setIconKey(k => k + 1);
+    onClick(tab.id);
+  };
+
   return (
     <button
-      onClick={() => onClick(tab.id)}
+      onClick={handleClick}
       title={collapsed ? tab.label : undefined}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -119,6 +135,11 @@ const NavItem = ({ tab, active, onClick, badge, collapsed = false }) => {
         overflow: 'hidden',
       }}
     >
+      {/* Ripples au clic */}
+      {ripples.map(rp => (
+        <span key={rp.id} className="nav-ripple" style={{ left: rp.x, top: rp.y, opacity: 0.25 }} />
+      ))}
+
       {active && !collapsed && (
         <span style={{
           position: 'absolute', left: 0, top: '20%', bottom: '20%',
@@ -140,12 +161,16 @@ const NavItem = ({ tab, active, onClick, badge, collapsed = false }) => {
         transition: 'all 0.2s cubic-bezier(0.34,1.56,0.64,1)',
         filter: active ? 'brightness(1.1)' : 'none',
       }}>
-        <span style={{
-          display: 'inline-block',
-          transform: hovered && !active ? 'rotate(-8deg) scale(1.15)' : 'rotate(0) scale(1)',
-          transition: 'transform 0.2s cubic-bezier(0.34,1.56,0.64,1)',
-          filter: active ? 'brightness(0) invert(1)' : 'none',
-        }}>
+        <span
+          key={iconKey}
+          className={iconKey > 0 ? 'nav-icon-activate' : ''}
+          style={{
+            display: 'inline-block',
+            transform: (iconKey === 0 && hovered && !active) ? 'rotate(-8deg) scale(1.15)' : 'rotate(0) scale(1)',
+            transition: iconKey > 0 ? 'none' : 'transform 0.2s cubic-bezier(0.34,1.56,0.64,1)',
+            filter: active ? 'brightness(0) invert(1)' : 'none',
+          }}
+        >
           {tab.icon}
         </span>
         {collapsed && badge > 0 && (
@@ -187,7 +212,7 @@ const NavItem = ({ tab, active, onClick, badge, collapsed = false }) => {
   );
 };
 
-// Keyframes pour animations nav
+// Keyframes pour animations nav + transitions onglets
 if (typeof document !== 'undefined' && !document.getElementById('remine-nav-styles')) {
   const style = document.createElement('style');
   style.id = 'remine-nav-styles';
@@ -203,6 +228,49 @@ if (typeof document !== 'undefined' && !document.getElementById('remine-nav-styl
     @keyframes statCardIn {
       from { opacity: 0; transform: translateY(12px); }
       to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes tabSlideIn {
+      from { opacity: 0; transform: translateY(14px) scale(0.995); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .tab-content-enter {
+      animation: tabSlideIn 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    @keyframes subTabIn {
+      from { opacity: 0; transform: translateX(10px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    .subtab-content-enter {
+      animation: subTabIn 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    @keyframes iconActivate {
+      0%   { transform: scale(1) rotate(0deg); }
+      30%  { transform: scale(1.35) rotate(-12deg); }
+      60%  { transform: scale(0.9) rotate(6deg); }
+      80%  { transform: scale(1.08) rotate(-3deg); }
+      100% { transform: scale(1) rotate(0deg); }
+    }
+    .nav-icon-activate { animation: iconActivate 0.45s cubic-bezier(0.34,1.56,0.64,1) both; }
+    @keyframes subIconPop {
+      0%   { transform: scale(0.6) translateY(4px); opacity: 0; }
+      60%  { transform: scale(1.2) translateY(-2px); opacity: 1; }
+      100% { transform: scale(1) translateY(0); opacity: 1; }
+    }
+    .sub-icon-pop { animation: subIconPop 0.3s cubic-bezier(0.34,1.56,0.64,1) both; }
+    @keyframes navRipple {
+      from { transform: scale(0); opacity: 0.35; }
+      to   { transform: scale(2.8); opacity: 0; }
+    }
+    .nav-ripple {
+      position: absolute; border-radius: 50%;
+      background: #10b981; width: 40px; height: 40px;
+      margin-left: -20px; margin-top: -20px;
+      pointer-events: none;
+      animation: navRipple 0.5s ease-out forwards;
+    }
+    @keyframes iconShimmer {
+      0%   { background-position: -200% center; }
+      100% { background-position: 200% center; }
     }
   `;
   document.head.appendChild(style);
@@ -282,25 +350,98 @@ const ExportDropdown = ({ onCSV, onPDF, disabled }) => {
 
 const TabGroup = ({ tabs, children }) => {
   const [active, setActive] = useState(tabs[0].id);
+  const [contentKey, setContentKey] = useState(0);
+  const [activeIconKey, setActiveIconKey] = useState({});
+
+  const handleSubTab = (id) => {
+    if (id === active) return;
+    setActive(id);
+    setContentKey(k => k + 1);
+    setActiveIconKey(prev => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl w-fit">
-        {tabs.map(t => (
-          <button
-            key={t.id}
-            onClick={() => setActive(t.id)}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              active === t.id
-                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-            }`}
-          >
-            <span>{t.icon}</span>
-            <span>{t.label}</span>
-          </button>
-        ))}
+      {/* Barre de sous-onglets */}
+      <div
+        className="flex gap-0.5 bg-gray-100 dark:bg-gray-800/80 p-1 rounded-xl w-fit"
+        style={{ backdropFilter: 'blur(8px)' }}
+      >
+        {tabs.map((t) => {
+          const isActive = active === t.id;
+          const iconK = activeIconKey[t.id] || 0;
+          return (
+            <button
+              key={t.id}
+              onClick={() => handleSubTab(t.id)}
+              style={{
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '6px 14px',
+                borderRadius: 8,
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: 13,
+                fontWeight: isActive ? 600 : 500,
+                zIndex: 1,
+                background: isActive ? (
+                  typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
+                    ? '#374151' : 'white'
+                ) : 'transparent',
+                color: isActive ? (
+                  typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
+                    ? '#f9fafb' : '#111827'
+                ) : (
+                  typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
+                    ? '#9ca3af' : '#6b7280'
+                ),
+                boxShadow: isActive ? '0 1px 6px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.04)' : 'none',
+                transition: 'all 0.2s cubic-bezier(0.22, 1, 0.36, 1)',
+              }}
+            >
+              {/* Icône sous-onglet */}
+              <span
+                key={iconK}
+                className={iconK > 0 ? 'sub-icon-pop' : ''}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 22,
+                  height: 22,
+                  borderRadius: 6,
+                  fontSize: 13,
+                  background: isActive ? 'linear-gradient(135deg, #10b981, #059669)' : 'transparent',
+                  transition: 'background 0.2s, transform 0.2s',
+                  transform: isActive ? 'scale(1.05)' : 'scale(1)',
+                  filter: isActive ? 'brightness(0) invert(1)' : 'none',
+                  flexShrink: 0,
+                }}
+              >
+                {t.icon}
+              </span>
+              <span style={{ whiteSpace: 'nowrap' }}>{t.label}</span>
+
+              {/* Dot actif */}
+              {isActive && (
+                <span style={{
+                  width: 5, height: 5, borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                  flexShrink: 0,
+                  animation: 'navDotPulse 2s infinite',
+                }} />
+              )}
+            </button>
+          );
+        })}
       </div>
-      <div>{children(active)}</div>
+
+      {/* Contenu avec transition */}
+      <div key={contentKey} className="subtab-content-enter">
+        {children(active)}
+      </div>
     </div>
   );
 };
@@ -1134,7 +1275,9 @@ export default function Dashboard() {
         <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-950">
           <div className="p-4 lg:p-6 max-w-screen-2xl mx-auto">
             <Toast toast={toast} onClose={() => setToast(t => ({ ...t, show: false }))} />
-            {renderContent()}
+            <div key={activeTab} className="tab-content-enter">
+              {renderContent()}
+            </div>
           </div>
         </main>
 
