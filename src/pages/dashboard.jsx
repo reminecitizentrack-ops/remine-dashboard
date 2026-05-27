@@ -715,117 +715,152 @@ export default function Dashboard() {
 
       case 'overview':
         return (
-          <div className="space-y-6">
-            {/* Stats principales */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+            {/* ══ LIGNE 1 : 4 KPI cards ══ */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
               {[
-                { label: 'Total signalements', value: memoizedStats?.overview?.totalReports || 0, icon: '📋', color: '#3b82f6', bg: darkMode ? 'rgba(30,58,138,0.25)' : '#eff6ff', sub: `${memoizedStats?.overview?.activeReports || 0} actifs` },
-                { label: 'Résolus',            value: memoizedStats?.overview?.resolvedReports || 0, icon: '✅', color: '#10b981', bg: darkMode ? 'rgba(6,78,59,0.25)' : '#ecfdf5', sub: `${Math.round(memoizedStats?.overview?.resolutionRate || 0)}% taux` },
-                { label: 'Urgents',            value: urgentCount,  icon: '🚨', color: '#ef4444', bg: darkMode ? 'rgba(69,10,10,0.3)' : '#fef2f2', sub: 'Nécessitent action' },
-                { label: 'Citoyens',           value: memoizedStats?.overview?.totalUsers || 0, icon: '👥', color: '#8b5cf6', bg: darkMode ? 'rgba(46,16,101,0.25)' : '#f5f3ff', sub: 'inscrits' },
+                { label: 'Signalements', value: memoizedStats?.overview?.totalReports || 0,  icon: '📋', color: '#3b82f6', bg: darkMode ? 'rgba(30,58,138,0.2)'  : '#eff6ff', sub: `${memoizedStats?.overview?.activeReports || 0} actifs`,      trend: null },
+                { label: 'Résolus',      value: memoizedStats?.overview?.resolvedReports || 0, icon: '✅', color: '#10b981', bg: darkMode ? 'rgba(6,78,59,0.2)'   : '#ecfdf5', sub: `${Math.round(memoizedStats?.overview?.resolutionRate || 0)}% taux`, trend: 'up' },
+                { label: 'Urgents',      value: urgentCount,                                   icon: '🚨', color: '#ef4444', bg: darkMode ? 'rgba(69,10,10,0.25)' : '#fef2f2', sub: 'Nécessitent action',  trend: urgentCount > 0 ? 'warn' : null },
+                { label: 'Citoyens',     value: memoizedStats?.overview?.totalUsers || 0,     icon: '👥', color: '#8b5cf6', bg: darkMode ? 'rgba(46,16,101,0.2)' : '#f5f3ff', sub: 'inscrits',            trend: 'up' },
               ].map((s, i) => (
-                <div key={s.label} style={{
-                  background: darkMode ? '#1e293b' : '#fff',
-                  borderRadius: 18, padding: 20,
-                  border: `1px solid ${darkMode ? '#334155' : '#f3f4f6'}`,
-                  boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-                  animation: `statCardIn 0.4s ease ${i * 0.08}s both`,
-                  transition: 'transform 0.2s, box-shadow 0.2s', cursor: 'default',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${s.color}22`; }}
-                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.06)'; }}
+                <div key={s.label}
+                  style={{
+                    background: darkMode ? '#1e293b' : '#fff',
+                    borderRadius: 20, padding: '18px 20px',
+                    border: `1px solid ${darkMode ? '#334155' : '#f1f5f9'}`,
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                    animation: `statCardIn 0.45s cubic-bezier(0.22,1,0.36,1) ${i * 0.07}s both`,
+                    cursor: 'default', position: 'relative', overflow: 'hidden',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = `0 12px 32px ${s.color}28`; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)';    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)'; }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
-                    <span style={{ width: 44, height: 44, borderRadius: 14, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, boxShadow: `0 4px 12px ${s.color}22`, transition: 'transform 0.3s cubic-bezier(0.34,1.56,0.64,1)' }}
-                      onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.15) rotate(-5deg)'}
+                  {/* Fond décoratif */}
+                  <div style={{ position: 'absolute', top: -12, right: -12, fontSize: 56, opacity: 0.055, userSelect: 'none', pointerEvents: 'none' }}>{s.icon}</div>
+
+                  {/* Header */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
+                    <span
+                      style={{ width: 46, height: 46, borderRadius: 14, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, boxShadow: `0 4px 14px ${s.color}25`, flexShrink: 0, transition: 'transform 0.35s cubic-bezier(0.34,1.56,0.64,1)' }}
+                      onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.18) rotate(-8deg)'}
                       onMouseLeave={e => e.currentTarget.style.transform = 'scale(1) rotate(0)'}
                     >{s.icon}</span>
-                    <span style={{ fontSize: 11, color: darkMode ? '#64748b' : '#9ca3af', background: darkMode ? '#0f172a' : '#f9fafb', padding: '2px 8px', borderRadius: 20 }}>{s.sub}</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 99, background: s.trend === 'warn' ? '#fee2e2' : s.trend === 'up' ? '#dcfce7' : (darkMode ? '#0f172a' : '#f8fafc'), color: s.trend === 'warn' ? '#dc2626' : s.trend === 'up' ? '#16a34a' : (darkMode ? '#475569' : '#9ca3af') }}>
+                      {s.sub}
+                    </span>
                   </div>
-                  <p style={{ fontSize: 34, fontWeight: 900, color: darkMode ? '#f1f5f9' : '#111827', fontVariantNumeric: 'tabular-nums', margin: 0 }}>{s.value}</p>
-                  <p style={{ fontSize: 13, color: darkMode ? '#94a3b8' : '#6b7280', marginTop: 4 }}>{s.label}</p>
 
-                  {/* Mini sparkline simulée */}
-                  <div style={{ marginTop: 12, height: 3, borderRadius: 3, background: darkMode ? '#334155' : '#f3f4f6', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', borderRadius: 3, background: `linear-gradient(90deg, ${s.color}, ${s.color}99)`, width: s.value > 0 ? '100%' : '0%', transition: 'width 1s ease' }} />
+                  {/* Valeur */}
+                  <p style={{ fontSize: 36, fontWeight: 900, color: darkMode ? '#f1f5f9' : '#0f172a', margin: 0, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{s.value}</p>
+                  <p style={{ fontSize: 12, color: darkMode ? '#64748b' : '#9ca3af', marginTop: 5, fontWeight: 500 }}>{s.label}</p>
+
+                  {/* Barre de progression */}
+                  <div style={{ marginTop: 14, height: 4, borderRadius: 4, background: darkMode ? '#334155' : '#f1f5f9', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', borderRadius: 4, background: `linear-gradient(90deg, ${s.color}, ${s.color}88)`, width: s.value > 0 ? '100%' : '0%', transition: 'width 1.2s cubic-bezier(0.22,1,0.36,1)' }} />
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* ── Top 3 signalements récents + Taux de résolution ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
+            {/* ══ LIGNE 2 : Signalements récents + Jauge résolution ══ */}
+            <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr', gap: 14 }}>
+
               {/* Signalements récents */}
-              <div style={{ background: darkMode ? '#1e293b' : '#fff', borderRadius: 18, border: `1px solid ${darkMode ? '#334155' : '#f1f5f9'}`, padding: '18px 20px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+              <div style={{ background: darkMode ? '#1e293b' : '#fff', borderRadius: 20, border: `1px solid ${darkMode ? '#334155' : '#f1f5f9'}`, padding: '18px 20px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-                  <h3 style={{ fontSize: 14, fontWeight: 800, color: darkMode ? '#f1f5f9' : '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: 7 }}>
-                    <span style={{ fontSize: 16 }}>🕐</span> Signalements récents
+                  <h3 style={{ fontSize: 14, fontWeight: 800, color: darkMode ? '#f1f5f9' : '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ width: 28, height: 28, background: darkMode ? '#0f172a' : '#f1f5f9', borderRadius: 8, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>🕐</span>
+                    Signalements récents
                   </h3>
-                  <button onClick={() => handleTabChange('reports')} style={{ fontSize: 11, color: '#10b981', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer' }}>
+                  <button onClick={() => handleTabChange('reports')} style={{ fontSize: 11, color: '#10b981', fontWeight: 700, background: darkMode ? 'rgba(16,185,129,0.1)' : '#ecfdf5', border: 'none', cursor: 'pointer', padding: '4px 10px', borderRadius: 99 }}>
                     Voir tout →
                   </button>
                 </div>
-                {memoizedReports.slice(0, 5).map((r, i) => {
-                  const sevColors = { critical: '#dc2626', high: '#f97316', medium: '#f59e0b', low: '#22c55e' };
-                  const staLabels = { new: 'Nouveau', verified: 'Vérifié', in_progress: 'En cours', resolved: 'Résolu', rejected: 'Rejeté' };
-                  const typeIcons = { water_pollution: '💧', air_pollution: '💨', soil_contamination: '🟤', waste_deposit: '🗑️', dust: '🌫️', abandoned_site: '🏚️', noise_pollution: '🔊', other: '⚠️' };
-                  const c = sevColors[r.severity] || '#6b7280';
-                  return (
-                    <div key={r._id || i} onClick={() => handleTabChange('reports', r._id || r.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 12, cursor: 'pointer', marginBottom: 4, transition: 'background 0.15s' }}
-                      onMouseEnter={e => e.currentTarget.style.background = darkMode ? '#0f172a' : '#f8fafc'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                    >
-                      <span style={{ fontSize: 18, flexShrink: 0 }}>{typeIcons[r.type] || '⚠️'}</span>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: 12, fontWeight: 700, color: darkMode ? '#e2e8f0' : '#1e293b', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {r.title || r.description?.substring(0, 50) || 'Sans titre'}
-                        </p>
-                        <p style={{ fontSize: 11, color: darkMode ? '#64748b' : '#94a3b8', margin: '2px 0 0' }}>{r.location?.city || r.location?.address?.substring(0, 30) || '—'}</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {memoizedReports.slice(0, 6).length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '24px 0', color: darkMode ? '#475569' : '#94a3b8', fontSize: 13 }}>Aucun signalement</div>
+                  ) : memoizedReports.slice(0, 6).map((r, i) => {
+                    const SEV_COLOR = { critical: '#dc2626', high: '#f97316', medium: '#f59e0b', low: '#22c55e' };
+                    const STA_LABEL = { new: 'Nouveau', verified: 'Vérifié', in_progress: 'En cours', resolved: 'Résolu', rejected: 'Rejeté' };
+                    const TYPE_ICO  = { water_pollution: '💧', air_pollution: '💨', soil_contamination: '🟤', waste_deposit: '🗑️', dust: '🌫️', abandoned_site: '🏚️', noise_pollution: '🔊', other: '⚠️' };
+                    const c = SEV_COLOR[r.severity] || '#6b7280';
+                    const timeAgo = (() => {
+                      const diff = Date.now() - new Date(r.createdAt);
+                      const h = Math.floor(diff / 3600000);
+                      const d = Math.floor(diff / 86400000);
+                      return d > 0 ? `il y a ${d}j` : h > 0 ? `il y a ${h}h` : 'récent';
+                    })();
+                    return (
+                      <div key={r._id || i}
+                        onClick={() => handleTabChange('reports', r._id || r.id)}
+                        style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 10px', borderRadius: 12, cursor: 'pointer', animation: `statCardIn 0.4s ease ${i * 0.05}s both`, transition: 'background 0.15s' }}
+                        onMouseEnter={e => e.currentTarget.style.background = darkMode ? '#0f172a' : '#f8fafc'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <div style={{ width: 36, height: 36, borderRadius: 10, background: `${c}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
+                          {TYPE_ICO[r.type] || '⚠️'}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: 12, fontWeight: 700, color: darkMode ? '#e2e8f0' : '#0f172a', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {r.title || r.description?.substring(0, 55) || 'Sans titre'}
+                          </p>
+                          <p style={{ fontSize: 11, color: darkMode ? '#64748b' : '#94a3b8', margin: '2px 0 0', display: 'flex', gap: 6 }}>
+                            <span>📍 {r.location?.city || r.location?.address?.substring(0, 25) || '—'}</span>
+                            <span style={{ opacity: 0.5 }}>·</span>
+                            <span>{timeAgo}</span>
+                          </p>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+                          <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: `${c}18`, color: c, border: `1px solid ${c}30` }}>{r.severity}</span>
+                          <span style={{ fontSize: 10, color: darkMode ? '#475569' : '#94a3b8', fontWeight: 500 }}>{STA_LABEL[r.status] || r.status}</span>
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3, flexShrink: 0 }}>
-                        <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 99, background: `${c}18`, color: c }}>{r.severity}</span>
-                        <span style={{ fontSize: 10, color: darkMode ? '#475569' : '#9ca3af' }}>{staLabels[r.status] || r.status}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-                {memoizedReports.length === 0 && (
-                  <div style={{ textAlign: 'center', padding: '20px 0', color: darkMode ? '#475569' : '#9ca3af', fontSize: 13 }}>Aucun signalement</div>
-                )}
+                    );
+                  })}
+                </div>
               </div>
 
-              {/* Taux de résolution + jauge */}
-              <div style={{ background: darkMode ? '#1e293b' : '#fff', borderRadius: 18, border: `1px solid ${darkMode ? '#334155' : '#f1f5f9'}`, padding: '18px 20px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: 16 }}>
-                <h3 style={{ fontSize: 14, fontWeight: 800, color: darkMode ? '#f1f5f9' : '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: 7 }}>
-                  <span style={{ fontSize: 16 }}>🎯</span> Résolution
+              {/* Jauge de résolution */}
+              <div style={{ background: darkMode ? '#1e293b' : '#fff', borderRadius: 20, border: `1px solid ${darkMode ? '#334155' : '#f1f5f9'}`, padding: '18px 20px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <h3 style={{ fontSize: 14, fontWeight: 800, color: darkMode ? '#f1f5f9' : '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ width: 28, height: 28, background: '#dcfce7', borderRadius: 8, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>🎯</span>
+                  Résolution
                 </h3>
-
-                {/* Grande jauge circulaire SVG */}
                 {(() => {
-                  const rate = Math.round(memoizedStats?.overview?.resolutionRate || 0);
-                  const r = 42, circ = 2 * Math.PI * r;
-                  const dash = (rate / 100) * circ;
+                  const rate  = Math.round(memoizedStats?.overview?.resolutionRate || 0);
+                  const R     = 44, circ = 2 * Math.PI * R;
+                  const dash  = (rate / 100) * circ;
+                  const color = rate >= 70 ? '#10b981' : rate >= 40 ? '#f59e0b' : '#ef4444';
                   return (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-                      <svg width="110" height="110" viewBox="0 0 110 110">
-                        <circle cx="55" cy="55" r={r} fill="none" stroke={darkMode ? '#334155' : '#f1f5f9'} strokeWidth="10" />
-                        <circle cx="55" cy="55" r={r} fill="none" stroke="#10b981" strokeWidth="10"
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+                      <svg width="116" height="116" viewBox="0 0 116 116">
+                        {/* Cercle de fond */}
+                        <circle cx="58" cy="58" r={R} fill="none" stroke={darkMode ? '#334155' : '#f1f5f9'} strokeWidth="11" />
+                        {/* Arc coloré */}
+                        <circle cx="58" cy="58" r={R} fill="none" stroke={color} strokeWidth="11"
                           strokeDasharray={`${dash} ${circ - dash}`} strokeLinecap="round"
-                          transform="rotate(-90 55 55)" style={{ transition: 'stroke-dasharray 1.2s cubic-bezier(0.22,1,0.36,1)' }} />
-                        <text x="55" y="51" textAnchor="middle" style={{ fontSize: 22, fontWeight: 900, fill: darkMode ? '#f1f5f9' : '#0f172a', fontFamily: 'system-ui' }}>{rate}%</text>
-                        <text x="55" y="66" textAnchor="middle" style={{ fontSize: 9, fill: darkMode ? '#64748b' : '#9ca3af', fontFamily: 'system-ui' }}>résolution</text>
+                          transform="rotate(-90 58 58)"
+                          style={{ transition: 'stroke-dasharray 1.4s cubic-bezier(0.22,1,0.36,1)' }}
+                        />
+                        {/* Texte central */}
+                        <text x="58" y="53" textAnchor="middle" style={{ fontSize: 24, fontWeight: 900, fill: darkMode ? '#f1f5f9' : '#0f172a', fontFamily: 'system-ui' }}>{rate}%</text>
+                        <text x="58" y="69" textAnchor="middle" style={{ fontSize: 9, fill: darkMode ? '#64748b' : '#94a3b8', fontFamily: 'system-ui', fontWeight: 600, letterSpacing: 0.5 }}>RÉSOLUTION</text>
                       </svg>
+
+                      {/* Mini légende */}
                       {[
-                        { label: 'Résolus', value: memoizedStats?.overview?.resolvedReports || 0, color: '#10b981' },
-                        { label: 'Actifs',  value: memoizedStats?.overview?.activeReports   || 0, color: '#3b82f6' },
-                        { label: 'Urgents', value: urgentCount,                                    color: '#ef4444' },
+                        { label: 'Résolus',  value: memoizedStats?.overview?.resolvedReports || 0, color: '#10b981' },
+                        { label: 'Actifs',   value: memoizedStats?.overview?.activeReports   || 0, color: '#3b82f6' },
+                        { label: 'Urgents',  value: urgentCount,                                   color: '#ef4444'  },
                       ].map(s => (
-                        <div key={s.label} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span style={{ width: 8, height: 8, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
+                        <div key={s.label} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                            <span style={{ width: 9, height: 9, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
                             <span style={{ fontSize: 12, color: darkMode ? '#94a3b8' : '#6b7280' }}>{s.label}</span>
                           </div>
-                          <span style={{ fontSize: 13, fontWeight: 800, color: s.color }}>{s.value}</span>
+                          <span style={{ fontSize: 14, fontWeight: 900, color: s.color, fontVariantNumeric: 'tabular-nums' }}>{s.value}</span>
                         </div>
                       ))}
                     </div>
@@ -834,76 +869,77 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Flux temps réel */}
+            {/* ══ LIGNE 3 : Flux temps réel ══ */}
             <LiveFeed reports={memoizedReports} onNavigate={handleTabChange} />
 
-            {/* Impact + Alertes */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <span className="w-7 h-7 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center text-sm">🌍</span>
+            {/* ══ LIGNE 4 : Impact env + Activité 7j + Alertes ══ */}
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
+
+              {/* Impact + Activité */}
+              <div style={{ background: darkMode ? '#1e293b' : '#fff', borderRadius: 20, border: `1px solid ${darkMode ? '#334155' : '#f1f5f9'}`, padding: '20px 22px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                <h3 style={{ fontSize: 14, fontWeight: 800, color: darkMode ? '#f1f5f9' : '#0f172a', margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ width: 28, height: 28, background: '#dcfce7', borderRadius: 8, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>🌍</span>
                   Impact environnemental
                 </h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 20 }}>
                   {[
-                    { label: 'CO₂ évité',       value: `${impactData.co2Saved.toLocaleString()}t`,  color: 'emerald' },
-                    { label: 'Eau protégée',     value: `${(impactData.waterProtected/1000).toFixed(0)}k L`, color: 'blue' },
-                    { label: 'Déchets traités',  value: `${impactData.wasteProcessed.toLocaleString()}t`,    color: 'amber' },
-                    { label: 'Revenus générés',  value: formatFCFA(impactData.revenueGenerated / EUR_TO_FCFA), color: 'purple' },
-                  ].map(m => {
-                    const c = { emerald: 'bg-emerald-50 text-emerald-700', blue: 'bg-blue-50 text-blue-700', amber: 'bg-amber-50 text-amber-700', purple: 'bg-purple-50 text-purple-700' }[m.color];
-                    return (
-                      <div key={m.label} className={`rounded-xl p-4 ${c}`}>
-                        <p className="text-xl font-black tabular-nums">{m.value}</p>
-                        <p className="text-xs mt-1 opacity-70">{m.label}</p>
-                      </div>
-                    );
-                  })}
+                    { label: 'CO₂ évité',       value: `${(impactData.co2Saved||0).toLocaleString()}t`,                  bg: '#dcfce7', color: '#16a34a', icon: '🌿' },
+                    { label: 'Eau protégée',     value: `${((impactData.waterProtected||0)/1000).toFixed(0)}k L`,          bg: '#dbeafe', color: '#1d4ed8', icon: '💧' },
+                    { label: 'Déchets traités',  value: `${(impactData.wasteProcessed||0).toLocaleString()}t`,             bg: '#fef9c3', color: '#a16207', icon: '♻️' },
+                    { label: 'Revenus',          value: formatFCFA(impactData.revenueGenerated / EUR_TO_FCFA),             bg: '#ede9fe', color: '#6d28d9', icon: '💰' },
+                  ].map(m => (
+                    <div key={m.label} style={{ borderRadius: 14, padding: '12px 14px', background: darkMode ? `${m.color}18` : m.bg, border: `1px solid ${m.color}25` }}>
+                      <span style={{ fontSize: 18 }}>{m.icon}</span>
+                      <p style={{ fontSize: 18, fontWeight: 900, color: m.color, margin: '6px 0 2px', fontVariantNumeric: 'tabular-nums' }}>{m.value}</p>
+                      <p style={{ fontSize: 10, color: darkMode ? `${m.color}99` : m.color, margin: 0, opacity: 0.75, fontWeight: 600 }}>{m.label}</p>
+                    </div>
+                  ))}
                 </div>
 
-                <div className="mt-5 pt-5 border-t border-gray-100">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-sm font-semibold text-gray-600">Activité des 7 derniers jours</h4>
-                    <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
-                      {activityData?.reduce((s, d) => s + (d.count || 0), 0) ?? 0} signalements
+                {/* Graphique activité 7j */}
+                <div style={{ borderTop: `1px solid ${darkMode ? '#334155' : '#f1f5f9'}`, paddingTop: 14 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                    <h4 style={{ fontSize: 12, fontWeight: 700, color: darkMode ? '#94a3b8' : '#6b7280', margin: 0 }}>Activité — 7 derniers jours</h4>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#10b981', background: darkMode ? 'rgba(16,185,129,0.1)' : '#dcfce7', padding: '2px 8px', borderRadius: 99 }}>
+                      {activityData?.reduce((s, d) => s + (d.count || 0), 0) ?? 0} signalement{(activityData?.reduce((s, d) => s + (d.count || 0), 0) ?? 0) > 1 ? 's' : ''}
                     </span>
                   </div>
                   {(() => {
-                    const days = activityData?.length                      ? activityData
+                    const days = activityData?.length
+                      ? activityData
                       : Array.from({ length: 7 }, (_, i) => {
                           const d = new Date(); d.setDate(d.getDate() - (6 - i));
                           return { count: 0, label: d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' }) };
                         });
                     const maxCount = Math.max(...days.map(d => d.count || 0), 1);
                     return (
-                      <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
-                        <div className="flex items-end gap-1.5 h-16 mb-2">
+                      <div style={{ background: darkMode ? '#0f172a' : '#f8fafc', borderRadius: 14, padding: '12px 14px', border: `1px solid ${darkMode ? '#1e293b' : '#f1f5f9'}` }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 5, height: 64, marginBottom: 8 }}>
                           {days.map((day, i) => {
-                            const pct   = Math.max(((day.count || 0) / maxCount) * 100, day.count > 0 ? 8 : 3);
+                            const pct   = Math.max(((day.count || 0) / maxCount) * 100, day.count > 0 ? 10 : 4);
                             const today = i === days.length - 1;
                             return (
-                              <div key={i} className="flex-1 flex flex-col items-center justify-end h-full gap-0.5"
+                              <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%', gap: 3 }}
                                    title={`${day.label} : ${day.count || 0} signalement(s)`}>
-                                {day.count > 0 && (
-                                  <span className="text-xs font-bold text-gray-700" style={{ fontSize: 9 }}>{day.count}</span>
-                                )}
-                                <div
-                                  className={`w-full rounded-t-md transition-all ${today ? 'bg-emerald-500' : 'bg-emerald-300'} border-b-2 ${today ? 'border-emerald-700' : 'border-emerald-400'}`}
-                                  style={{ height: `${pct}%`, minHeight: 3 }}
-                                />
+                                {day.count > 0 && <span style={{ fontSize: 8, fontWeight: 800, color: today ? '#059669' : (darkMode ? '#64748b' : '#94a3b8') }}>{day.count}</span>}
+                                <div style={{
+                                  width: '100%', borderRadius: '4px 4px 2px 2px',
+                                  height: `${pct}%`, minHeight: 4,
+                                  background: today ? 'linear-gradient(180deg, #10b981, #059669)' : (darkMode ? '#334155' : '#d1fae5'),
+                                  transition: `height 0.8s cubic-bezier(0.22,1,0.36,1) ${i * 0.06}s`,
+                                  boxShadow: today ? '0 2px 8px rgba(16,185,129,0.4)' : 'none',
+                                }} />
                               </div>
                             );
                           })}
                         </div>
-                        <div className="flex gap-1.5">
+                        <div style={{ display: 'flex', gap: 5 }}>
                           {days.map((day, i) => {
                             const today = i === days.length - 1;
-                            const label = (day.label || '').split(' ')[0];
                             return (
-                              <div key={i} className="flex-1 text-center">
-                                <span className={`text-gray-500 font-medium ${today ? 'text-emerald-600 font-bold' : ''}`}
-                                      style={{ fontSize: 9 }}>
-                                  {label}
+                              <div key={i} style={{ flex: 1, textAlign: 'center' }}>
+                                <span style={{ fontSize: 8, fontWeight: today ? 800 : 500, color: today ? '#10b981' : (darkMode ? '#475569' : '#9ca3af') }}>
+                                  {(day.label || '').split(' ')[0]}
                                 </span>
                               </div>
                             );
@@ -915,34 +951,28 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="p-5 border-b border-gray-100">
-                  <h3 className="font-bold text-gray-900 flex items-center gap-2">
-                    <span className="w-7 h-7 bg-red-100 text-red-500 rounded-lg flex items-center justify-center text-sm">🔔</span>
+              {/* Alertes */}
+              <div style={{ background: darkMode ? '#1e293b' : '#fff', borderRadius: 20, border: `1px solid ${darkMode ? '#334155' : '#f1f5f9'}`, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ padding: '16px 18px', borderBottom: `1px solid ${darkMode ? '#334155' : '#f1f5f9'}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 800, color: darkMode ? '#f1f5f9' : '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ width: 28, height: 28, background: '#fee2e2', borderRadius: 8, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>🔔</span>
                     Alertes
-                    {urgentCount > 0 && (
-                      <span className="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">{urgentCount}</span>
-                    )}
                   </h3>
+                  {urgentCount > 0 && (
+                    <span style={{ background: '#ef4444', color: '#fff', fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 99 }}>{urgentCount}</span>
+                  )}
                 </div>
-                <div className="p-3">
+                <div style={{ flex: 1, padding: 12, overflowY: 'auto' }}>
                   <SmartAlerts reports={memoizedReports} stats={memoizedStats} onNavigate={setActiveTab} />
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <span className="w-7 h-7 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center text-sm">📋</span>
-                  Signalements récents
-                </h3>
-                <RecentActivity reports={memoizedReports.slice(0, 5)} />
-              </div>
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                <AIPriorityEngine reports={memoizedReports} onPriorityUpdate={() => {}} />
-              </div>
+            {/* ══ LIGNE 5 : Priorités IA ══ */}
+            <div style={{ background: darkMode ? '#1e293b' : '#fff', borderRadius: 20, border: `1px solid ${darkMode ? '#334155' : '#f1f5f9'}`, padding: '18px 20px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+              <AIPriorityEngine reports={memoizedReports} onPriorityUpdate={() => {}} />
             </div>
+
           </div>
         );
 
