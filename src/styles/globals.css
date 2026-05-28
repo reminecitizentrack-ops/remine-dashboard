@@ -6,6 +6,84 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ══════════════════════════════════════════════════════════════
+   REMINE — DESIGN TOKENS & THÈME GLOBAL
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Variables CSS (mode clair) ─────────────────────────────── */
+:root {
+  /* Couleurs brand */
+  --brand-50:  #ecfdf5;
+  --brand-100: #d1fae5;
+  --brand-400: #34d399;
+  --brand-500: #10b981;
+  --brand-600: #059669;
+  --brand-700: #047857;
+
+  /* Surfaces */
+  --surface:        #ffffff;
+  --surface-muted:  #f8fafc;
+  --surface-raised: #ffffff;
+  --surface-border: #f1f5f9;
+  --surface-border-strong: #e2e8f0;
+
+  /* Textes */
+  --text-primary:   #0f172a;
+  --text-secondary: #475569;
+  --text-muted:     #94a3b8;
+  --text-disabled:  #cbd5e1;
+
+  /* Statuts */
+  --color-critical: #dc2626;
+  --color-high:     #f97316;
+  --color-medium:   #f59e0b;
+  --color-low:      #22c55e;
+  --color-info:     #3b82f6;
+
+  /* Ombres */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.10), 0 4px 8px rgba(0,0,0,0.04);
+  --shadow-brand: 0 4px 16px rgba(16,185,129,0.25);
+
+  /* Rayons */
+  --radius-sm:  8px;
+  --radius-md:  12px;
+  --radius-lg:  16px;
+  --radius-xl:  20px;
+  --radius-2xl: 24px;
+
+  /* Transitions */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-fast:   150ms;
+  --duration-normal: 250ms;
+  --duration-slow:   400ms;
+
+  /* Sidebar */
+  --sidebar-width: 240px;
+  --sidebar-width-collapsed: 64px;
+  --header-height: 60px;
+}
+
+/* ── Variables CSS (mode sombre) ────────────────────────────── */
+html.dark {
+  --surface:        #1e293b;
+  --surface-muted:  #0f172a;
+  --surface-raised: #1e293b;
+  --surface-border: #334155;
+  --surface-border-strong: #475569;
+
+  --text-primary:   #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted:     #64748b;
+  --text-disabled:  #334155;
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.2),  0 1px 2px rgba(0,0,0,0.15);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.25), 0 2px 4px rgba(0,0,0,0.15);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.35), 0 4px 8px rgba(0,0,0,0.15);
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -769,4 +847,326 @@ html.dark div[style*="border: 1px solid #d1d5db"] {
 html.dark div[style*="background: #f3f4f6"],
 html.dark div[style*="background:#f3f4f6"] {
   background: #334155 !important;
+}
+/* ══════════════════════════════════════════════════════════════
+   TYPOGRAPHIE
+   ══════════════════════════════════════════════════════════════ */
+
+body {
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  font-variation-settings: 'opsz' 32;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--surface-muted);
+  color: var(--text-primary);
+}
+
+/* Chiffres tabulaires partout où ça compte */
+.tabular-nums,
+[data-metric],
+.metric-value {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+/* ══════════════════════════════════════════════════════════════
+   SCROLLBARS CUSTOM
+   ══════════════════════════════════════════════════════════════ */
+
+::-webkit-scrollbar              { width: 6px; height: 6px; }
+::-webkit-scrollbar-track        { background: transparent; }
+::-webkit-scrollbar-thumb        { background: #e2e8f0; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover  { background: #cbd5e1; }
+html.dark ::-webkit-scrollbar-thumb       { background: #334155; }
+html.dark ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+/* ══════════════════════════════════════════════════════════════
+   COMPOSANTS RÉUTILISABLES (couche @layer components)
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Carte ────────────────────────────────────────────────── */
+.remine-card {
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--duration-normal) var(--ease-smooth),
+              transform  var(--duration-normal) var(--ease-smooth),
+              border-color var(--duration-normal);
+}
+.remine-card:hover {
+  box-shadow: var(--shadow-md);
+}
+.remine-card-interactive:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* ── Badge ─────────────────────────────────────────────────── */
+.remine-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+}
+.remine-badge-critical { background: #fee2e2; color: #dc2626; }
+.remine-badge-high     { background: #ffedd5; color: #ea580c; }
+.remine-badge-medium   { background: #fef9c3; color: #a16207; }
+.remine-badge-low      { background: #dcfce7; color: #16a34a; }
+.remine-badge-brand    { background: var(--brand-50); color: var(--brand-700); }
+html.dark .remine-badge-critical { background: rgba(220,38,38,0.15);  color: #f87171; }
+html.dark .remine-badge-high     { background: rgba(249,115,22,0.15); color: #fb923c; }
+html.dark .remine-badge-medium   { background: rgba(245,158,11,0.15); color: #fbbf24; }
+html.dark .remine-badge-low      { background: rgba(34,197,94,0.15);  color: #4ade80; }
+html.dark .remine-badge-brand    { background: rgba(16,185,129,0.15); color: #34d399; }
+
+/* ── Bouton ─────────────────────────────────────────────────── */
+.remine-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-smooth);
+  user-select: none;
+  white-space: nowrap;
+}
+.remine-btn:active { transform: scale(0.97); }
+.remine-btn-primary {
+  background: linear-gradient(135deg, var(--brand-500), var(--brand-600));
+  color: #fff;
+  box-shadow: var(--shadow-brand);
+}
+.remine-btn-primary:hover {
+  background: linear-gradient(135deg, var(--brand-400), var(--brand-500));
+  box-shadow: 0 6px 20px rgba(16,185,129,0.35);
+  transform: translateY(-1px);
+}
+.remine-btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--surface-border);
+}
+.remine-btn-ghost:hover {
+  background: var(--surface-muted);
+  color: var(--text-primary);
+}
+.remine-btn-danger {
+  background: #fee2e2;
+  color: #dc2626;
+}
+.remine-btn-danger:hover {
+  background: #fecaca;
+}
+
+/* ── Input ──────────────────────────────────────────────────── */
+.remine-input {
+  background: var(--surface);
+  border: 1px solid var(--surface-border-strong);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color var(--duration-fast), box-shadow var(--duration-fast);
+  width: 100%;
+}
+.remine-input:focus {
+  border-color: var(--brand-500);
+  box-shadow: 0 0 0 3px rgba(16,185,129,0.15);
+}
+html.dark .remine-input {
+  background: #0f172a;
+  border-color: #334155;
+}
+html.dark .remine-input:focus {
+  border-color: var(--brand-400);
+  box-shadow: 0 0 0 3px rgba(52,211,153,0.12);
+}
+
+/* ── Séparateur ─────────────────────────────────────────────── */
+.remine-divider {
+  height: 1px;
+  background: var(--surface-border);
+  border: none;
+  margin: 0;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   MICRO-ANIMATIONS GLOBALES
+   ══════════════════════════════════════════════════════════════ */
+
+@keyframes remine-fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+@keyframes remine-scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1);    }
+}
+@keyframes remine-slide-right {
+  from { opacity: 0; transform: translateX(-10px); }
+  to   { opacity: 1; transform: translateX(0);     }
+}
+@keyframes remine-shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+@keyframes remine-pulse-ring {
+  0%   { box-shadow: 0 0 0 0   rgba(16,185,129,0.4); }
+  70%  { box-shadow: 0 0 0 8px rgba(16,185,129,0);   }
+  100% { box-shadow: 0 0 0 0   rgba(16,185,129,0);   }
+}
+@keyframes remine-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes remine-bounce-in {
+  0%   { opacity: 0; transform: scale(0.3);  }
+  50%  { opacity: 1; transform: scale(1.05); }
+  70%  {             transform: scale(0.95); }
+  100% {             transform: scale(1);    }
+}
+
+.animate-fade-in    { animation: remine-fade-in    0.3s var(--ease-smooth) both; }
+.animate-scale-in   { animation: remine-scale-in   0.25s var(--ease-smooth) both; }
+.animate-slide-right{ animation: remine-slide-right 0.3s var(--ease-smooth) both; }
+.animate-bounce-in  { animation: remine-bounce-in  0.4s var(--ease-spring) both; }
+.animate-spin       { animation: remine-spin 0.7s linear infinite; }
+
+/* Shimmer skeleton */
+.shimmer-bg {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% auto;
+  animation: remine-shimmer 1.5s linear infinite;
+}
+html.dark .shimmer-bg {
+  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+  background-size: 200% auto;
+}
+
+/* Délais d'animation (pour les listes) */
+.delay-50  { animation-delay: 50ms;  }
+.delay-100 { animation-delay: 100ms; }
+.delay-150 { animation-delay: 150ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-250 { animation-delay: 250ms; }
+.delay-300 { animation-delay: 300ms; }
+
+/* ══════════════════════════════════════════════════════════════
+   FOCUS VISIBLE GLOBAL
+   ══════════════════════════════════════════════════════════════ */
+
+*:focus-visible {
+  outline: 2px solid var(--brand-500);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+button:focus:not(:focus-visible),
+input:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   SÉLECTION DE TEXTE
+   ══════════════════════════════════════════════════════════════ */
+
+::selection {
+  background: rgba(16,185,129,0.2);
+  color: var(--text-primary);
+}
+html.dark ::selection {
+  background: rgba(52,211,153,0.25);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   LEAFLET — OVERRIDES THÈME
+   ══════════════════════════════════════════════════════════════ */
+
+.leaflet-container {
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif !important;
+  font-size: 13px !important;
+}
+.leaflet-popup-content-wrapper {
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-lg) !important;
+  padding: 0 !important;
+  overflow: hidden;
+  border: 1px solid var(--surface-border) !important;
+}
+.leaflet-popup-content {
+  margin: 0 !important;
+  min-width: 200px !important;
+}
+.leaflet-popup-tip { display: none !important; }
+html.dark .leaflet-popup-content-wrapper {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f1f5f9 !important;
+}
+
+/* Cluster overrides */
+.marker-cluster-small  div,
+.marker-cluster-medium div,
+.marker-cluster-large  div {
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 800 !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   RECHARTS — OVERRIDES THÈME
+   ══════════════════════════════════════════════════════════════ */
+
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  border-radius: var(--radius-md) !important;
+  border: 1px solid var(--surface-border) !important;
+  box-shadow: var(--shadow-md) !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 12px !important;
+  background: var(--surface) !important;
+}
+.recharts-legend-item-text {
+  font-family: 'Inter', sans-serif !important;
+  font-size: 12px !important;
+  color: var(--text-secondary) !important;
+}
+.recharts-cartesian-axis-tick-value {
+  font-family: 'Inter', sans-serif !important;
+  font-size: 11px !important;
+  fill: var(--text-muted) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TRANSITIONS DE PAGE
+   ══════════════════════════════════════════════════════════════ */
+
+#__next {
+  isolation: isolate;
+}
+
+/* Smooth color transitions pour le dark mode */
+*,
+*::before,
+*::after {
+  transition-property: background-color, border-color, color;
+  transition-duration: 200ms;
+  transition-timing-function: var(--ease-smooth);
+}
+/* Éviter les transitions sur les animations et transforms */
+*[class*="animate-"],
+*[style*="animation"],
+*[style*="transform"] {
+  transition-property: background-color, border-color, color !important;
 }
