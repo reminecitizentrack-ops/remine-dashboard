@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { TagEditor } from './TagsManager';
 import { AdvancedFilters } from './AdvancedFilters';
 import { dashboardAPI } from '../services/api';
+import { VotesPanel } from './VotesPanel';
 
 // ==================== CONSTANTES ====================
 
@@ -487,6 +488,14 @@ const ReportDetailPanel = ({ report, onClose, onStatusChange, updating, onDelete
               </div>
             </div>
           )}
+
+          {/* Votes citoyens */}
+          <div>
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+              👍 Votes citoyens
+            </h4>
+            <VotesPanel report={report} />
+          </div>
 
           {/* Assigner un agent */}
           <div>

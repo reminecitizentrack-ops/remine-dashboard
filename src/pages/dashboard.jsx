@@ -5,6 +5,7 @@ import { ReportsTable }        from '../components/ReportsTable';
 import { RecentActivity }      from '../components/RecentActivity';
 import { UsersManagement }     from '../components/UsersManagement';
 import { AdvancedAnalytics }   from '../components/AdvancedAnalytics';
+import { TopVotedReports }     from '../components/TopVotedReports';
 import { ReportsMap }          from '../components/ReportsMap';
 import { SmartAlerts }         from '../components/SmartAlerts';
 import { ValorizationProjects } from '../components/ValorizationProjects';
@@ -980,11 +981,14 @@ export default function Dashboard() {
         return (
           <TabGroup
             tabs={[
-              { id: 'list', label: 'Liste', icon: '📋' },
-              { id: 'map',  label: 'Carte', icon: '🗺️' },
+              { id: 'list',  label: 'Liste',   icon: '📋' },
+              { id: 'map',   label: 'Carte',   icon: '🗺️' },
+              { id: 'votes', label: 'Votes',   icon: '👍' },
             ]}
           >
-            {(sub) => sub === 'map'
+            {(sub) => sub === 'votes'
+              ? <TopVotedReports onReportClick={(r) => { setSelectedReport(r); handleTabChange('reports'); }} />
+              : sub === 'map'
               ? <ReportsMap reports={memoizedReports} onReportClick={(r) => { setSelectedReport(r); }} />
               : <ReportsTable
                   reports={memoizedReports}
