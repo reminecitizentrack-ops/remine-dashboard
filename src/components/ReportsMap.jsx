@@ -42,105 +42,15 @@ const MapController = dynamic(
   { ssr: false }
 );
 
-// ─── ClusterLayer ─────────────────────────────────────────────────────────────
+// ─── ClusterLayer (fichier séparé → next/dynamic compatible) ─────────────────
 const ClusterLayer = dynamic(
-  () => Promise.resolve().then(() => {
-    return function ClusterLayerInternal({ reports, onSelect, selected, makeIcon }) {
-      const { useMap } = require('react-leaflet');
-      const map = useMap();
-      const groupRef = useRef(null);
-
-      useEffect(() => {
-        if (typeof window === 'undefined') return;
-        const L = require('leaflet');
-        require('leaflet.markercluster');
-
-        if (!document.getElementById('cluster-css')) {
-          ['https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css',
-           'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css'].forEach(href => {
-            const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = href;
-            if (!document.getElementById('cluster-css')) { l.id = 'cluster-css'; }
-            document.head.appendChild(l);
-          });
-        }
-
-        if (groupRef.current) map.removeLayer(groupRef.current);
-
-        const group = L.markerClusterGroup({
-          maxClusterRadius: 60,
-          spiderfyOnMaxZoom: true,
-          showCoverageOnHover: true,
-          zoomToBoundsOnClick: true,
-          iconCreateFunction: (cluster) => {
-            const count = cluster.getChildCount();
-            const children = cluster.getAllChildMarkers();
-            const hasCrit = children.some(m => m.options._severity === 'critical');
-            const hasHigh = children.some(m => m.options._severity === 'high');
-            const color   = hasCrit ? '#dc2626' : hasHigh ? '#f97316' : '#10b981';
-            const size    = count < 10 ? 36 : count < 50 ? 44 : 52;
-            return L.divIcon({
-              html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:${count<10?13:12}px;font-weight:900;box-shadow:0 3px 14px ${color}66;border:3px solid rgba(255,255,255,0.85)">${count}</div>`,
-              className: '', iconSize: [size, size], iconAnchor: [size/2, size/2],
-            });
-          },
-        });
-
-        reports.forEach(r => {
-          const coords = extractCoords(r);
-          if (!coords) return;
-          const isSelected = selected?._id === r._id || selected?.id === r.id;
-          const marker = L.marker([coords.lat, coords.lng], { icon: makeIcon(r, isSelected), _severity: r.severity });
-          marker.on('click', () => onSelect(r));
-          group.addLayer(marker);
-        });
-
-        map.addLayer(group);
-        groupRef.current = group;
-
-        return () => { if (groupRef.current) { map.removeLayer(groupRef.current); groupRef.current = null; } };
-      }, [reports, selected, map, onSelect, makeIcon]);
-
-      return null;
-    };
-  }),
+  () => import('./MapClusterLayer'),
   { ssr: false }
 );
 
-// ─── HeatmapLayer ─────────────────────────────────────────────────────────────
+// ─── HeatmapLayer (fichier séparé → next/dynamic compatible) ─────────────────
 const HeatmapLayer = dynamic(
-  () => Promise.resolve().then(() => {
-    return function HeatmapLayerInternal({ points }) {
-      const { useMap } = require('react-leaflet');
-      const map = useMap();
-      const layerRef = useRef(null);
-
-      useEffect(() => {
-        if (typeof window === 'undefined' || !points.length) return;
-        const load = async () => {
-          if (!window.L?.heatLayer) {
-            await new Promise((res, rej) => {
-              const s = document.createElement('script');
-              s.src = 'https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js';
-              s.onload = res; s.onerror = rej;
-              document.head.appendChild(s);
-            });
-          }
-          const L = require('leaflet');
-          if (layerRef.current) map.removeLayer(layerRef.current);
-          const heat = L.heatLayer(
-            points.map(p => [p.lat, p.lng, p.severity === 'critical' ? 1 : p.severity === 'high' ? 0.7 : p.severity === 'medium' ? 0.4 : 0.2]),
-            { radius: 35, blur: 25, maxZoom: 17, max: 1, gradient: { 0.1: '#3b82f6', 0.35: '#8b5cf6', 0.6: '#f59e0b', 0.8: '#f97316', 1: '#dc2626' } }
-          );
-          heat.addTo(map);
-          layerRef.current = heat;
-        };
-        load().catch(console.error);
-        return () => { if (layerRef.current) { map.removeLayer(layerRef.current); layerRef.current = null; } };
-      }, [points, map]);
-
-      return null;
-    };
-  }),
+  () => import('./MapHeatLayer'),
   { ssr: false }
 );
 
