@@ -65,6 +65,18 @@ function setCached(key, data) {
 
 export const dashboardAPI = {
 
+  // === MÉTHODE GÉNÉRIQUE ===
+  async request(path, options = {}) {
+    try {
+      const url = path.startsWith('http') ? path : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'}${path}`;
+      const res  = await authFetch(url, options);
+      return await res.json();
+    } catch (error) {
+      console.error('API request error:', error);
+      return { success: false, error: 'Erreur de connexion' };
+    }
+  },
+
   // === AUTH ===
 
   async login(email, password) {
