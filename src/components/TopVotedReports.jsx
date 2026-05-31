@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { dashboardAPI } from '../services/api';
+import { VoteManagerPanel } from './VoteManagerPanel';
 import {
   BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, PieChart, Pie, AreaChart, Area,
@@ -56,7 +57,8 @@ export function TopVotedReports({ onReportClick }) {
   const [sortBy,      setSortBy]      = useState('voteCount');
   const [filter,      setFilter]      = useState('all');
   const [limit,       setLimit]       = useState(10);
-  const [view,        setView]        = useState('list'); // list | charts | controversial
+  const [view,        setView]        = useState('list');
+  const [managedReport, setManagedReport] = useState(null); // list | charts | controversial
   const [search,      setSearch]      = useState('');
   const dm = useDark();
 
@@ -242,16 +244,23 @@ export function TopVotedReports({ onReportClick }) {
                     </div>
                   </div>
 
-                  {/* Score */}
-                  <div style={{ textAlign:'center', flexShrink:0, minWidth:52 }}>
-                    <p style={{ fontSize:22, fontWeight:900, color:barColor, margin:0, fontVariantNumeric:'tabular-nums', lineHeight:1 }}>
-                      {isPos ? '+' : ''}{score}
-                    </p>
-                    <p style={{ fontSize:9, color:textMut, margin:'3px 0 0' }}>score</p>
-                    {/* Mini barre couleur */}
-                    <div style={{ height:3, background:dm?'#334155':'#f1f5f9', borderRadius:99, marginTop:4, overflow:'hidden' }}>
-                      <div style={{ height:'100%', background:barColor, width:`${barWidth}%`, borderRadius:99, transition:'width 0.8s' }} />
+                  {/* Score + bouton gérer */}
+                  <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, flexShrink:0, minWidth:64 }}>
+                    <div style={{ textAlign:'center' }}>
+                      <p style={{ fontSize:22, fontWeight:900, color:barColor, margin:0, fontVariantNumeric:'tabular-nums', lineHeight:1 }}>
+                        {isPos ? '+' : ''}{score}
+                      </p>
+                      <p style={{ fontSize:9, color:textMut, margin:'3px 0 0' }}>score</p>
+                      <div style={{ height:3, background:dm?'#334155':'#f1f5f9', borderRadius:99, marginTop:4, overflow:'hidden' }}>
+                        <div style={{ height:'100%', background:barColor, width:`${barWidth}%`, borderRadius:99, transition:'width 0.8s' }} />
+                      </div>
                     </div>
+                    <button
+                      onClick={e => { e.stopPropagation(); setManagedReport(report); }}
+                      title="Gérer les votes"
+                      style={{ padding:'3px 8px', borderRadius:7, border:`1px solid ${dm?'#334155':'#e2e8f0'}`, background:dm?'#0f172a':'#f8fafc', color:'#8b5cf6', fontSize:10, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}>
+                      ⚙️ Gérer
+                    </button>
                   </div>
                 </div>
               </div>
@@ -424,6 +433,21 @@ export function TopVotedReports({ onReportClick }) {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Modal VoteManagerPanel */}
+      {managedReport && (
+        <div style={{ position:'fixed', inset:0, zIndex:9990, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(0,0,0,0.5)', backdropFilter:'blur(4px)' }} onClick={e => { if(e.target===e.currentTarget) setManagedReport(null); }}>
+          <div style={{ background:dm?'#1e293b':'#fff', borderRadius:24, padding:'24px 28px', width:'min(620px,95vw)', maxHeight:'90vh', overflow:'hidden', display:'flex', flexDirection:'column', gap:16, boxShadow:'0 32px 80px rgba(0,0,0,0.3)', border:`1px solid ${dm?'#334155':'#f1f5f9'}` }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
+              <h2 style={{ fontSize:16, fontWeight:800, color:dm?'#f1f5f9':'#0f172a', margin:0, display:'flex', alignItems:'center', gap:8 }}>⚙️ Gestion des votes</h2>
+              <button onClick={()=>setManagedReport(null)} style={{ width:32,height:32,borderRadius:'50%',background:dm?'#334155':'#f1f5f9',border:'none',cursor:'pointer',color:dm?'#94a3b8':'#374151',fontSize:16,display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700 }}>✕</button>
+            </div>
+            <div style={{ flex:1, overflowY:'auto' }}>
+              <VoteManagerPanel report={managedReport} onClose={() => { setManagedReport(null); loadReports(); }} />
+            </div>
+          </div>
         </div>
       )}
     </div>

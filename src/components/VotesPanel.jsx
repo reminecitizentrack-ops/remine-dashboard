@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { dashboardAPI } from '../services/api';
+import { VoteManagerPanel } from './VoteManagerPanel';
 import {
   AreaChart, Area, XAxis, YAxis, ResponsiveContainer,
 } from 'recharts';
@@ -146,7 +147,8 @@ export function VotesPanel({ report }) {
   const [loading,   setLoading]   = useState(true);
   const [voting,    setVoting]    = useState(null); // 'up' | 'down' | null
   const [feedback,  setFeedback]  = useState(null); // { type: 'success'|'info'|'error', msg }
-  const [tab,       setTab]       = useState('overview');
+  const [tab,       setTab]       = useState('vote');
+  const [showManager, setShowManager] = useState(false);
   const dark = useDark();
 
   const reportId = report?._id || report?.id;
@@ -387,7 +389,29 @@ export function VotesPanel({ report }) {
         </div>
       )}
 
-      <button onClick={load} style={{fontSize:11,color:dark?'#64748b':'#9ca3af',background:'none',border:'none',cursor:'pointer',padding:'10px 0 0',display:'flex',alignItems:'center',gap:5,alignSelf:'flex-start'}}>
+      {/* Bouton gérer les votes */}
+      <button onClick={() => setShowManager(true)} style={{ fontSize:11, fontWeight:700, color:'#8b5cf6', background:'none', border:'none', cursor:'pointer', padding:'10px 0 0', display:'flex', alignItems:'center', gap:5, alignSelf:'flex-start' }}>
+        ⚙️ Gérer les votes (admin)
+      </button>
+
+      {/* Modal VoteManagerPanel */}
+      {showManager && (
+        <div style={{ position:'fixed', inset:0, zIndex:9990, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(0,0,0,0.5)', backdropFilter:'blur(4px)', animation:'remine-fade-in 0.15s both' }} onClick={e => { if (e.target === e.currentTarget) setShowManager(false); }}>
+          <div style={{ background:dark?'#1e293b':'#fff', borderRadius:24, padding:'24px 28px', width:'min(600px, 95vw)', maxHeight:'90vh', overflow:'hidden', display:'flex', flexDirection:'column', gap:16, boxShadow:'0 32px 80px rgba(0,0,0,0.3)', border:`1px solid ${dark?'#334155':'#f1f5f9'}`, animation:'remine-scale-in 0.2s both' }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
+              <h2 style={{ fontSize:16, fontWeight:800, color:dark?'#f1f5f9':'#0f172a', margin:0, display:'flex', alignItems:'center', gap:8 }}>
+                <span>⚙️</span> Gestion des votes
+              </h2>
+              <button onClick={() => setShowManager(false)} style={{ width:32, height:32, borderRadius:'50%', background:dark?'#334155':'#f1f5f9', border:'none', cursor:'pointer', color:dark?'#94a3b8':'#374151', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700 }}>✕</button>
+            </div>
+            <div style={{ flex:1, overflowY:'auto' }}>
+              <VoteManagerPanel report={report} onClose={() => { setShowManager(false); load(); }} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      <button onClick={load} style={{fontSize:11,color:dark?'#64748b':'#9ca3af',background:'none',border:'none',cursor:'pointer',padding:'4px 0 0',display:'flex',alignItems:'center',gap:5,alignSelf:'flex-start'}}>
         <span onMouseEnter={e=>e.currentTarget.style.transform='rotate(180deg)'} onMouseLeave={e=>e.currentTarget.style.transform='rotate(0)'} style={{display:'inline-block',transition:'transform 0.3s'}}>↺</span> Rafraîchir
       </button>
     </div>
