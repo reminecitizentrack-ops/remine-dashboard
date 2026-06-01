@@ -5,6 +5,7 @@ import { ReportsTable }        from '../components/ReportsTable';
 import { RecentActivity }      from '../components/RecentActivity';
 import { UsersManagement }     from '../components/UsersManagement';
 import { AdvancedAnalytics }   from '../components/AdvancedAnalytics';
+import { SettingsPage }        from '../components/SettingsPage';
 import { TopVotedReports }     from '../components/TopVotedReports';
 import { ReportsMap }          from '../components/ReportsMap';
 import { SmartAlerts }         from '../components/SmartAlerts';
@@ -42,12 +43,13 @@ const formatFCFA = (euros) => {
 };
 
 const TABS = [
-  { id: 'overview',     label: 'Aperçu',       icon: '⬡', desc: 'Vue d\'ensemble'          },
-  { id: 'reports',      label: 'Signalements', icon: '📋', desc: 'Signalements & carte'     },
-  { id: 'analyse',      label: 'Analyse',      icon: '✦', desc: 'IA, stats & régions'      },
-  { id: 'valorization', label: 'Valorisation', icon: '◈', desc: 'Projets de valorisation'  },
-  { id: 'citoyens',     label: 'Citoyens',     icon: '◉', desc: 'Utilisateurs & messagerie'},
-  { id: 'admin',        label: 'Administration', icon: '🗂️', desc: 'Audit, tags & rapports' },
+  { id: 'overview',     label: 'Aperçu',        icon: '⬡',  desc: "Vue d'ensemble"            },
+  { id: 'reports',      label: 'Signalements',  icon: '📋', desc: 'Signalements & carte'      },
+  { id: 'analyse',      label: 'Analyse',       icon: '✦',  desc: 'IA, stats & régions'       },
+  { id: 'valorization', label: 'Valorisation',  icon: '◈',  desc: 'Projets de valorisation'   },
+  { id: 'citoyens',     label: 'Citoyens',      icon: '◉',  desc: 'Utilisateurs & messagerie' },
+  { id: 'admin',        label: 'Administration',icon: '🗂️', desc: 'Audit, tags & rapports'    },
+  { id: 'settings',     label: 'Paramètres',    icon: '⚙️', desc: 'Configuration du dashboard'},
 ];
 
 // ==================== SOUS-COMPOSANTS ====================
@@ -462,7 +464,7 @@ export default function Dashboard() {
     try {
       const saved = localStorage.getItem('remine_active_tab') || 'overview';
       const legacyMap = { 'map':'reports','ai-insights':'analyse','analytics':'analyse','users':'citoyens','audit':'admin','regions':'analyse','messaging':'citoyens','autoreport':'admin','tags':'admin','stats-cards':'analyse','metrics':'analyse','history':'admin' };
-      const validTabs = new Set(['overview','reports','analyse','valorization','citoyens','admin']);
+      const validTabs = new Set(['overview','reports','analyse','valorization','citoyens','admin','settings']);
       const resolved = legacyMap[saved] || saved;
       return validTabs.has(resolved) ? resolved : 'overview';
     } catch { return 'overview'; }
@@ -632,7 +634,7 @@ export default function Dashboard() {
       }
       if (e.key === 'Escape') { setShowSearch(false); setSearchQuery(''); return; }
       if (e.key === 'r' && !e.metaKey && !e.ctrlKey) { refetchAll(); return; }
-      const tabIds = ['overview','reports','analyse','valorization','citoyens','admin'];
+      const tabIds = ['overview','reports','analyse','valorization','citoyens','admin','settings'];
       const idx = parseInt(e.key) - 1;
       if (idx >= 0 && idx < tabIds.length) handleTabChange(tabIds[idx]);
     };
@@ -1127,6 +1129,21 @@ export default function Dashboard() {
 
 
 
+      case 'settings':
+        return (
+          <SettingsPage
+            currentDarkMode={darkMode}
+            onDarkModeChange={setDarkMode}
+            autoRefresh={autoRefresh}
+            onAutoRefreshChange={setAutoRefresh}
+            refreshInterval={refreshInterval}
+            onRefreshIntervalChange={setRefreshInterval}
+            onSettingsChange={(s) => {
+              if (s.sidebarCollapsed !== undefined) setCollapsed(s.sidebarCollapsed);
+            }}
+          />
+        );
+
       default:
         return (
           <div className="flex flex-col items-center justify-center py-24 text-gray-400">
@@ -1476,7 +1493,7 @@ export default function Dashboard() {
             <div className="px-4 py-2 border-t border-gray-100 bg-gray-50 flex gap-4 text-xs text-gray-400">
               <span><kbd className="font-mono bg-white border border-gray-200 rounded px-1">↵</kbd> ouvrir</span>
               <span><kbd className="font-mono bg-white border border-gray-200 rounded px-1">Esc</kbd> fermer</span>
-              <span><kbd className="font-mono bg-white border border-gray-200 rounded px-1">1-6</kbd> onglets</span>
+              <span><kbd className="font-mono bg-white border border-gray-200 rounded px-1">1-7</kbd> onglets</span>
             </div>
           </div>
         </div>
