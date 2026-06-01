@@ -600,7 +600,7 @@ export default function Dashboard() {
     'history':     'admin',
   }), []);
 
-  const VALID_TABS = useMemo(() => new Set(['overview','reports','analyse','valorization','citoyens','admin']), []);
+  const VALID_TABS = useMemo(() => new Set(['overview','reports','analyse','valorization','citoyens','admin','settings']), []);
 
   const handleTabChange = useCallback((id, reportId) => {
     const resolved = LEGACY_TAB_MAP[id] || id;
