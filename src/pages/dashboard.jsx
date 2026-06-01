@@ -21,6 +21,7 @@ import { dashboardAPI }        from '../services/api';
 import { useDashboardData }    from '../hooks/useDashboardData';
 import { DeletionLogs }        from '../components/DeletionLogs';
 import { ExportPDFModal }      from '../components/ExportPDF';
+import { ExportModal }         from '../components/ExportModal';
 import { useSocket }           from '../hooks/useSocket';
 import { RegionDashboard }     from '../components/RegionDashboard';
 import { ActionHistory }       from '../components/ActionHistory';
@@ -480,6 +481,7 @@ export default function Dashboard() {
   const [selectedReport, setSelectedReport] = useState(null);
   const [aiLoading, setAILoading]           = useState(false);
   const [showPDFModal, setShowPDFModal]     = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [refreshing, setRefreshing]         = useState(false);
   const [rtBadge, setRtBadge]               = useState(0);
   const [rtToast, setRtToast]               = useState(null);
@@ -1335,8 +1337,8 @@ export default function Dashboard() {
               <span className="hidden sm:inline">Actualiser</span>
             </button>
 
-            <ExportDropdown
-              onCSV={() => handleExport()}
+            <button
+              onClick={() => setShowExportModal(true)}
               onPDF={async () => {
                 try {
                   const res = await dashboardAPI.getDeletionLogs({ limit: 500 });
@@ -1497,6 +1499,14 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+      )}
+
+      {showExportModal && (
+        <ExportModal
+          onClose={() => setShowExportModal(false)}
+          reports={memoizedReports}
+          stats={memoizedStats}
+        />
       )}
 
       {showPDFModal && (
