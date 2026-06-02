@@ -266,6 +266,7 @@ export function SettingsPage({ onSettingsChange, currentDarkMode, onDarkModeChan
   const textPri = dm ? '#f1f5f9' : '#0f172a';
   const textSec = dm ? '#94a3b8' : '#6b7280';
   const bgMut   = dm ? '#0f172a' : '#f8fafc';
+  const textMut  = dm ? '#64748b' : '#9ca3af';
 
   return (
     <div style={{ display: 'flex', gap: 24, height: '100%' }}>
