@@ -19,10 +19,11 @@ const DEFAULTS = {
   // Apparence
   darkMode:        false,
   accentColor:     '#10b981',
+  theme:           'remine',  // remine | ocean | forest | sunset | midnight | desert
   sidebarCollapsed:false,
   compactMode:     false,
   animationsEnabled: true,
-  fontSize:        'md',   // sm | md | lg
+  fontSize:        'md',
   // Données & Refresh
   autoRefresh:     false,
   refreshInterval: 60,
@@ -45,6 +46,24 @@ const DEFAULTS = {
   debugMode:       false,
   cacheEnabled:    true,
   language:        'fr',
+  // Dashboard
+  showKpiReports:  true,
+  showKpiResolved: true,
+  showKpiUrgent:   true,
+  showKpiCitizens: true,
+  showLiveFeed:    true,
+  showAIPriority:  true,
+  showImpact:      true,
+};
+
+// ─── Thèmes prédéfinis ───────────────────────────────────────────────────────
+const THEMES = {
+  remine:   { label: 'ReMine',    emoji: '🌍', accent: '#10b981', dark: false, desc: 'Vert nature — thème par défaut' },
+  ocean:    { label: 'Océan',     emoji: '🌊', accent: '#0ea5e9', dark: false, desc: 'Bleu profond — frais et calme' },
+  forest:   { label: 'Forêt',     emoji: '🌲', accent: '#16a34a', dark: true,  desc: 'Vert sombre — forêt tropicale' },
+  sunset:   { label: 'Coucher',   emoji: '🌅', accent: '#f97316', dark: false, desc: 'Orange doré — chaleureux' },
+  midnight: { label: 'Minuit',    emoji: '🌙', accent: '#8b5cf6', dark: true,  desc: 'Violet nuit — mode sombre élégant' },
+  desert:   { label: 'Désert',    emoji: '🏜️', accent: '#d97706', dark: false, desc: 'Ocre sableux — Sahel africain' },
 };
 
 function loadSettings() {
@@ -231,13 +250,17 @@ export function SettingsPage({ onSettingsChange, currentDarkMode, onDarkModeChan
   }, []);
 
   const SECTIONS = [
-    { id: 'appearance',    label: 'Apparence',        icon: '🎨' },
-    { id: 'data',          label: 'Données',          icon: '📊' },
-    { id: 'notifications', label: 'Notifications',    icon: '🔔' },
-    { id: 'map',           label: 'Carte',            icon: '🗺️' },
-    { id: 'security',      label: 'Sécurité',         icon: '🔒' },
-    { id: 'advanced',      label: 'Avancé',           icon: '⚙️' },
-    { id: 'about',         label: 'À propos',         icon: 'ℹ️' },
+    { id: 'appearance',    label: 'Apparence',     icon: '🎨' },
+    { id: 'themes',        label: 'Thèmes',        icon: '🖌️' },
+    { id: 'dashboard',     label: 'Dashboard',     icon: '🧩' },
+    { id: 'data',          label: 'Données',       icon: '📊' },
+    { id: 'notifications', label: 'Notifications', icon: '🔔' },
+    { id: 'map',           label: 'Carte',         icon: '🗺️' },
+    { id: 'security',      label: 'Sécurité',      icon: '🔒' },
+    { id: 'shortcuts',     label: 'Raccourcis',    icon: '⌨️' },
+    { id: 'config',        label: 'Import/Export', icon: '💾' },
+    { id: 'advanced',      label: 'Avancé',        icon: '⚙️' },
+    { id: 'about',         label: 'À propos',      icon: 'ℹ️' },
   ];
 
   const textPri = dm ? '#f1f5f9' : '#0f172a';
@@ -461,6 +484,202 @@ export function SettingsPage({ onSettingsChange, currentDarkMode, onDarkModeChan
         )}
 
         {/* ══ AVANCÉ ═════════════════════════════════════════════════════════ */}
+        {/* ══ THÈMES ══════════════════════════════════════════════════════════ */}
+        {section === 'themes' && (
+          <Section title="Thèmes prédéfinis" icon="🖌️" dm={dm}>
+            <div style={{ padding: '12px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <p style={{ fontSize: 12, color: textSec, margin: '0 0 4px' }}>Choisissez un thème pour personnaliser l'apparence complète du dashboard</p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                {Object.entries(THEMES).map(([key, t]) => {
+                  const isActive = settings.theme === key;
+                  return (
+                    <button key={key} onClick={() => {
+                      update('theme', key);
+                      update('accentColor', t.accent);
+                      update('darkMode', t.dark);
+                    }} style={{
+                      padding: '14px 16px', borderRadius: 14, border: `2px solid ${isActive ? t.accent : (dm ? '#334155' : '#e2e8f0')}`,
+                      background: isActive ? (dm ? `${t.accent}15` : `${t.accent}10`) : (dm ? '#0f172a' : '#f8fafc'),
+                      cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s',
+                      boxShadow: isActive ? `0 4px 16px ${t.accent}25` : 'none',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: 20 }}>{t.emoji}</span>
+                          <span style={{ fontSize: 13, fontWeight: 800, color: isActive ? t.accent : textPri }}>{t.label}</span>
+                        </div>
+                        {isActive && <span style={{ fontSize: 11, fontWeight: 700, color: t.accent, background: `${t.accent}18`, padding: '2px 8px', borderRadius: 99 }}>✓ Actif</span>}
+                      </div>
+                      <p style={{ fontSize: 10, color: textSec, margin: 0 }}>{t.desc}</p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
+                        <div style={{ width: 18, height: 18, borderRadius: '50%', background: t.accent, boxShadow: `0 2px 6px ${t.accent}44` }} />
+                        <span style={{ fontSize: 10, fontFamily: 'monospace', color: textMut }}>{t.accent}</span>
+                        <span style={{ fontSize: 9, color: textMut, background: t.dark ? '#1e293b' : '#f1f5f9', padding: '1px 6px', borderRadius: 99, marginLeft: 4 }}>
+                          {t.dark ? '🌙 Sombre' : '☀️ Clair'}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </Section>
+        )}
+
+        {/* ══ DASHBOARD ═════════════════════════════════════════════════════════ */}
+        {section === 'dashboard' && (
+          <>
+            <Section title="Widgets de l'Aperçu" icon="🧩" dm={dm}>
+              {[
+                { key: 'showKpiReports',  label: 'KPI Signalements',     icon: '📋', desc: 'Carte total des signalements' },
+                { key: 'showKpiResolved', label: 'KPI Résolus',          icon: '✅', desc: 'Carte taux de résolution' },
+                { key: 'showKpiUrgent',   label: 'KPI Urgents',          icon: '🚨', desc: 'Carte signalements urgents' },
+                { key: 'showKpiCitizens', label: 'KPI Citoyens',         icon: '👥', desc: 'Carte citoyens inscrits' },
+                { key: 'showLiveFeed',    label: 'Flux temps réel',      icon: '🔴', desc: 'Activité en direct' },
+                { key: 'showAIPriority',  label: 'Priorités IA',         icon: '🤖', desc: 'Moteur de priorisation IA' },
+                { key: 'showImpact',      label: 'Impact environnemental', icon: '🌍', desc: 'Métriques CO₂, eau, déchets' },
+              ].map(w => (
+                <SettingRow key={w.key} label={`${w.icon} ${w.label}`} description={w.desc} dm={dm}>
+                  <Toggle checked={settings[w.key] !== false} onChange={v => update(w.key, v)} />
+                </SettingRow>
+              ))}
+            </Section>
+
+            <Section title="Raccourcis rapides" icon="⚡" dm={dm}>
+              <div style={{ padding: '10px 0' }}>
+                <p style={{ fontSize: 12, color: textSec, margin: '0 0 12px' }}>Ces raccourcis apparaissent dans la sidebar pour un accès rapide</p>
+                {[
+                  { key: 'pinSignalements', label: 'Épingler Signalements', default: true },
+                  { key: 'pinAnalyse',      label: 'Épingler Analyse',      default: true },
+                  { key: 'pinVotes',        label: 'Épingler onglet Votes', default: false },
+                  { key: 'pinExport',       label: 'Épingler Export rapide', default: false },
+                ].map(p => (
+                  <SettingRow key={p.key} label={p.label} dm={dm}>
+                    <Toggle checked={settings[p.key] !== false && settings[p.key] !== undefined ? settings[p.key] : p.default} onChange={v => update(p.key, v)} />
+                  </SettingRow>
+                ))}
+              </div>
+            </Section>
+          </>
+        )}
+
+        {/* ══ RACCOURCIS CLAVIER ══════════════════════════════════════════════ */}
+        {section === 'shortcuts' && (
+          <Section title="Raccourcis clavier" icon="⌨️" dm={dm}>
+            <div style={{ padding: '8px 0', display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <p style={{ fontSize: 11, color: textSec, margin: '0 0 16px' }}>Tous les raccourcis actifs dans le dashboard</p>
+              {[
+                { category: 'Navigation', items: [
+                  { keys: ['1'], desc: 'Onglet Aperçu'         },
+                  { keys: ['2'], desc: 'Onglet Signalements'   },
+                  { keys: ['3'], desc: 'Onglet Analyse'        },
+                  { keys: ['4'], desc: 'Onglet Valorisation'   },
+                  { keys: ['5'], desc: 'Onglet Citoyens'       },
+                  { keys: ['6'], desc: 'Onglet Administration' },
+                  { keys: ['7'], desc: 'Onglet Paramètres'     },
+                ]},
+                { category: 'Actions', items: [
+                  { keys: ['R'],        desc: 'Actualiser les données'  },
+                  { keys: ['⌘', 'K'],  desc: 'Ouvrir la recherche'     },
+                  { keys: ['D'],        desc: 'Basculer dark mode'      },
+                  { keys: ['Esc'],      desc: 'Fermer les modals'       },
+                ]},
+                { category: 'Export & Paramètres', items: [
+                  { keys: ['⌘', 'E'],  desc: "Ouvrir l'export"         },
+                  { keys: ['⌘', 'S'],  desc: 'Sauvegarder paramètres'  },
+                ]},
+              ].map(group => (
+                <div key={group.category} style={{ marginBottom: 18 }}>
+                  <p style={{ fontSize: 10, fontWeight: 800, color: textMut, textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 8px' }}>{group.category}</p>
+                  {group.items.map((item, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: `1px solid ${dm ? '#1e293b' : '#f8fafc'}` }}>
+                      <span style={{ fontSize: 12, color: textPri }}>{item.desc}</span>
+                      <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                        {item.keys.map((k, j) => (
+                          <React.Fragment key={j}>
+                            {j > 0 && <span style={{ fontSize: 10, color: textMut }}>+</span>}
+                            <kbd style={{ padding: '3px 8px', borderRadius: 6, background: dm ? '#0f172a' : '#f1f5f9', border: `1px solid ${dm ? '#334155' : '#d1d5db'}`, fontSize: 11, fontFamily: 'monospace', fontWeight: 700, color: textPri, boxShadow: dm ? '0 2px 0 #1e293b' : '0 2px 0 #d1d5db' }}>
+                              {k}
+                            </kbd>
+                          </React.Fragment>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </Section>
+        )}
+
+                {/* ══ IMPORT / EXPORT CONFIG ════════════════════════════════════════════ */}
+        {section === 'config' && (
+          <>
+            <Section title="Exporter la configuration" icon="📤" dm={dm}>
+              <div style={{ padding: '12px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <p style={{ fontSize: 12, color: textSec, margin: 0 }}>Sauvegardez tous vos paramètres dans un fichier JSON pour les restaurer plus tard ou les transférer sur un autre appareil.</p>
+                <button onClick={() => {
+                  const blob = new Blob([JSON.stringify({ version: '2.0', exported: new Date().toISOString(), settings }, null, 2)], { type: 'application/json' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url; a.download = `remine-settings-${new Date().toISOString().split('T')[0]}.json`;
+                  a.click(); URL.revokeObjectURL(url);
+                  setInfo({ type: 'success', msg: '✅ Configuration exportée' });
+                  setTimeout(() => setInfo(null), 3000);
+                }} style={{ padding: '10px 16px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg,#10b981,#059669)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 8, boxShadow: '0 4px 12px rgba(16,185,129,0.3)' }}>
+                  📥 Télécharger remine-settings.json
+                </button>
+                <div style={{ padding: '10px 14px', background: bgMut, borderRadius: 10, border: `1px solid ${dm ? '#334155' : '#f1f5f9'}` }}>
+                  <p style={{ fontSize: 11, color: textMut, margin: 0 }}>Inclut : thème, couleurs, préférences, notifications, carte, sécurité, dashboard</p>
+                </div>
+              </div>
+            </Section>
+
+            <Section title="Importer une configuration" icon="📂" dm={dm}>
+              <div style={{ padding: '12px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <p style={{ fontSize: 12, color: textSec, margin: 0 }}>Restaurez une configuration précédemment exportée. Les paramètres actuels seront remplacés.</p>
+                <label style={{ padding: '10px 16px', borderRadius: 12, border: `2px dashed ${dm ? '#334155' : '#e2e8f0'}`, background: bgMut, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, transition: 'all 0.15s' }}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = '#10b981'}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = dm ? '#334155' : '#e2e8f0'}>
+                  <span style={{ fontSize: 20 }}>📂</span>
+                  <div>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: textPri, margin: 0 }}>Choisir un fichier JSON</p>
+                    <p style={{ fontSize: 10, color: textMut, margin: '2px 0 0' }}>Format : remine-settings-*.json</p>
+                  </div>
+                  <input type="file" accept=".json" style={{ display: 'none' }} onChange={e => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = ev => {
+                      try {
+                        const parsed = JSON.parse(ev.target.result);
+                        if (parsed.settings) {
+                          const merged = { ...DEFAULTS, ...parsed.settings };
+                          setSettings(merged);
+                          saveSettings(merged);
+                          if (merged.darkMode !== undefined) onDarkModeChange?.(merged.darkMode);
+                          if (merged.accentColor) document.documentElement.style.setProperty('--brand-500', merged.accentColor);
+                          setInfo({ type: 'success', msg: `✅ Configuration importée (v${parsed.version || '?'} du ${parsed.exported?.split('T')[0] || '?'})` });
+                        } else {
+                          setInfo({ type: 'error', msg: '❌ Format de fichier invalide' });
+                        }
+                      } catch {
+                        setInfo({ type: 'error', msg: '❌ Fichier JSON invalide' });
+                      }
+                      setTimeout(() => setInfo(null), 4000);
+                    };
+                    reader.readAsText(file);
+                    e.target.value = '';
+                  }} />
+                </label>
+                <div style={{ padding: '10px 14px', background: dm ? 'rgba(239,68,68,0.06)' : '#fef2f2', borderRadius: 10, border: `1px solid ${dm ? '#7f1d1d' : '#fecaca'}` }}>
+                  <p style={{ fontSize: 11, color: '#dc2626', margin: 0, fontWeight: 600 }}>⚠️ L'importation remplace immédiatement tous vos paramètres actuels</p>
+                </div>
+              </div>
+            </Section>
+          </>
+        )}
+
         {section === 'advanced' && (
           <>
             <Section title="Développement" icon="⚙️" dm={dm}>
