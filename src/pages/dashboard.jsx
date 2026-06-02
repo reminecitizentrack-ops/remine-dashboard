@@ -436,7 +436,9 @@ export default function Dashboard() {
   const [selectedReport, setSelectedReport] = useState(null);
   const [aiLoading, setAILoading]           = useState(false);
   const [showPDFModal, setShowPDFModal]     = useState(false);
-  const [showExportModal, setShowExportModal] = useState(false);
+  const [showExportModal,   setShowExportModal]   = useState(false);
+  const [deleteDemoLoading, setDeleteDemoLoading] = useState(false);
+  const [showDeleteDemoConfirm, setShowDeleteDemoConfirm] = useState(false);
   const [refreshing, setRefreshing]         = useState(false);
   const [rtBadge, setRtBadge]               = useState(0);
   const [rtToast, setRtToast]               = useState(null);
@@ -645,6 +647,25 @@ export default function Dashboard() {
       notify('Erreur création données démo', 'error');
     }
   }, [createDemoData, notify]);
+
+  const handleDeleteDemo = useCallback(async (deleteUser = false) => {
+    setDeleteDemoLoading(true);
+    try {
+      const url = deleteUser ? '/api/admin/demo-data?deleteUser=true' : '/api/admin/demo-data';
+      const res = await dashboardAPI.request(url, { method: 'DELETE' });
+      if (res?.success) {
+        notify(res.message || 'Données démo supprimées', 'success');
+        refreshData();
+      } else {
+        notify(res?.error || 'Erreur lors de la suppression', 'error');
+      }
+    } catch {
+      notify('Erreur réseau', 'error');
+    } finally {
+      setDeleteDemoLoading(false);
+      setShowDeleteDemoConfirm(false);
+    }
+  }, [notify]);
 
   const urgentCount  = memoizedReports.filter(r => r.severity === 'critical' && r.status !== 'resolved').length;
 
@@ -1305,13 +1326,29 @@ export default function Dashboard() {
               </svg>
             </button>
 
-            <button
-              onClick={handleDemoData}
-              disabled={createDemoDataLoading}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
-            >
-              🎮 <span className="hidden lg:inline">Données démo</span>
-            </button>
+            <div className="hidden sm:flex items-center gap-1.5">
+              <button
+                onClick={handleDemoData}
+                disabled={createDemoDataLoading}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-l-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                title="Créer des données de démonstration"
+              >
+                {createDemoDataLoading
+                  ? <span className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                  : '🎮'}
+                <span className="hidden lg:inline">Données démo</span>
+              </button>
+              <button
+                onClick={() => setShowDeleteDemoConfirm(true)}
+                disabled={deleteDemoLoading}
+                className="flex items-center gap-1 px-2 py-1.5 text-sm font-medium text-red-500 bg-white border border-gray-200 border-l-0 rounded-r-lg hover:bg-red-50 hover:text-red-600 disabled:opacity-50 transition-colors"
+                title="Supprimer les données de démonstration"
+              >
+                {deleteDemoLoading
+                  ? <span className="w-3 h-3 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                  : '🗑️'}
+              </button>
+            </div>
 
             <NotificationBell onNavigate={(tab, reportId) => handleTabChange(tab, reportId)} />
 
@@ -1449,6 +1486,49 @@ export default function Dashboard() {
               <span><kbd className="font-mono bg-white border border-gray-200 rounded px-1">↵</kbd> ouvrir</span>
               <span><kbd className="font-mono bg-white border border-gray-200 rounded px-1">Esc</kbd> fermer</span>
               <span><kbd className="font-mono bg-white border border-gray-200 rounded px-1">1-7</kbd> onglets</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal confirmation suppression données démo */}
+      {showDeleteDemoConfirm && (
+        <div style={{ position:'fixed', top:0, left:0, right:0, bottom:0, zIndex:99999, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(0,0,0,0.5)', backdropFilter:'blur(4px)' }}
+          onClick={e => { if (e.target === e.currentTarget) setShowDeleteDemoConfirm(false); }}>
+          <div style={{ background:'#fff', borderRadius:20, padding:'28px 32px', width:'min(440px,92vw)', boxShadow:'0 24px 64px rgba(0,0,0,0.2)' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:14 }}>
+              <span style={{ width:44, height:44, background:'#fee2e2', borderRadius:14, display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, flexShrink:0 }}>🗑️</span>
+              <div>
+                <h3 style={{ fontSize:16, fontWeight:800, color:'#0f172a', margin:0 }}>Supprimer les données démo ?</h3>
+                <p style={{ fontSize:11, color:'#ef4444', margin:'3px 0 0', fontWeight:600 }}>Action irréversible</p>
+              </div>
+            </div>
+            <p style={{ fontSize:13, color:'#475569', lineHeight:1.7, margin:'0 0 8px' }}>
+              Tous les signalements créés par l'utilisateur <strong>demo@remine.sn</strong> seront définitivement supprimés.
+            </p>
+            <p style={{ fontSize:12, color:'#94a3b8', margin:'0 0 22px', lineHeight:1.6, background:'#f8fafc', padding:'10px 14px', borderRadius:10, border:'1px solid #f1f5f9' }}>
+              💡 Les signalements réels créés par de vrais citoyens ne seront pas affectés.
+            </p>
+            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+              <label style={{ display:'flex', alignItems:'center', gap:7, cursor:'pointer', flex:1 }}>
+                <input type="checkbox" id="deleteUserCheck" style={{ accentColor:'#ef4444' }} />
+                <span style={{ fontSize:12, color:'#64748b' }}>Supprimer aussi l'utilisateur démo</span>
+              </label>
+              <button onClick={() => setShowDeleteDemoConfirm(false)}
+                style={{ padding:'9px 18px', borderRadius:10, border:'1px solid #e2e8f0', background:'transparent', color:'#64748b', fontSize:13, fontWeight:600, cursor:'pointer' }}>
+                Annuler
+              </button>
+              <button
+                onClick={() => {
+                  const deleteUser = document.getElementById('deleteUserCheck')?.checked;
+                  handleDeleteDemo(deleteUser);
+                }}
+                disabled={deleteDemoLoading}
+                style={{ padding:'9px 18px', borderRadius:10, border:'none', background:'linear-gradient(135deg,#ef4444,#dc2626)', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer', boxShadow:'0 4px 12px rgba(239,68,68,0.35)', display:'flex', alignItems:'center', gap:6 }}>
+                {deleteDemoLoading
+                  ? <><span style={{ width:12, height:12, border:'2px solid rgba(255,255,255,0.5)', borderTopColor:'#fff', borderRadius:'50%', animation:'remine-spin 0.7s linear infinite', display:'inline-block' }} /> Suppression…</>
+                  : <><span>🗑️</span> Supprimer</>}
+              </button>
             </div>
           </div>
         </div>
