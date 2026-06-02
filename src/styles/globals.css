@@ -1170,3 +1170,19 @@ html.dark .leaflet-popup-content-wrapper {
 *[style*="transform"] {
   transition-property: background-color, border-color, color !important;
 }
+
+
+/* ── Mode compact ─────────────────────────────────────────────────────────── */
+html.compact .remine-card,
+html.compact [class*="p-4"],
+html.compact [class*="p-5"],
+html.compact [class*="p-6"] {
+  padding: calc(var(--compact-scale, 1) * 12px) !important;
+}
+html.compact .kpi-card,
+html.compact [class*="gap-4"],
+html.compact [class*="gap-6"] {
+  gap: calc(var(--compact-scale, 1) * 10px) !important;
+}
+html.compact h3 { font-size: 13px !important; }
+html.compact h2 { font-size: 15px !important; }

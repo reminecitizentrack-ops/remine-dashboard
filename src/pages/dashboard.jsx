@@ -437,6 +437,12 @@ export default function Dashboard() {
   const [aiLoading, setAILoading]           = useState(false);
   const [showPDFModal, setShowPDFModal]     = useState(false);
   const [showExportModal,   setShowExportModal]   = useState(false);
+  const [dashSettings,      setDashSettings]      = useState(() => {
+    try {
+      const s = localStorage.getItem('remine_settings');
+      return s ? JSON.parse(s) : {};
+    } catch { return {}; }
+  });
   const [deleteDemoLoading, setDeleteDemoLoading] = useState(false);
   const [showDeleteDemoConfirm, setShowDeleteDemoConfirm] = useState(false);
   const [refreshing, setRefreshing]         = useState(false);
@@ -648,6 +654,30 @@ export default function Dashboard() {
     }
   }, [createDemoData, notify]);
 
+  // Appliquer les settings sauvegardés au montage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('remine_settings');
+      if (!saved) return;
+      const s = JSON.parse(saved);
+      if (s.fontSize) {
+        const sizes = { sm: '13px', md: '14px', lg: '16px' };
+        document.documentElement.style.fontSize = sizes[s.fontSize] || '14px';
+      }
+      if (s.accentColor) {
+        document.documentElement.style.setProperty('--brand-500', s.accentColor);
+        document.documentElement.style.setProperty('--brand-600', s.accentColor);
+      }
+      if (s.compactMode) document.documentElement.classList.add('compact');
+      if (s.animationsEnabled === false) {
+        document.documentElement.style.setProperty('--duration-normal', '0ms');
+        document.documentElement.style.setProperty('--duration-fast', '0ms');
+      }
+      if (s.sidebarCollapsed !== undefined) setCollapsed(s.sidebarCollapsed);
+      setDashSettings(s);
+    } catch {}
+  }, []);
+
   const handleDeleteDemo = useCallback(async (deleteUser = false) => {
     setDeleteDemoLoading(true);
     try {
@@ -701,11 +731,11 @@ export default function Dashboard() {
             {/* ══ LIGNE 1 : 4 KPI cards ══ */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
               {[
-                { label: 'Signalements', value: memoizedStats?.overview?.totalReports || 0,  icon: '📋', color: '#3b82f6', bg: darkMode ? 'rgba(30,58,138,0.2)'  : '#eff6ff', sub: `${memoizedStats?.overview?.activeReports || 0} actifs`,      trend: null },
-                { label: 'Résolus',      value: memoizedStats?.overview?.resolvedReports || 0, icon: '✅', color: '#10b981', bg: darkMode ? 'rgba(6,78,59,0.2)'   : '#ecfdf5', sub: `${Math.round(memoizedStats?.overview?.resolutionRate || 0)}% taux`, trend: 'up' },
-                { label: 'Urgents',      value: urgentCount,                                   icon: '🚨', color: '#ef4444', bg: darkMode ? 'rgba(69,10,10,0.25)' : '#fef2f2', sub: 'Nécessitent action',  trend: urgentCount > 0 ? 'warn' : null },
-                { label: 'Citoyens',     value: memoizedStats?.overview?.totalUsers || 0,     icon: '👥', color: '#8b5cf6', bg: darkMode ? 'rgba(46,16,101,0.2)' : '#f5f3ff', sub: 'inscrits',            trend: 'up' },
-              ].map((s, i) => (
+                dashSettings.showKpiReports  !== false && { label: 'Signalements', value: memoizedStats?.overview?.totalReports || 0,  icon: '📋', color: '#3b82f6', bg: darkMode ? 'rgba(30,58,138,0.2)'  : '#eff6ff', sub: `${memoizedStats?.overview?.activeReports || 0} actifs`,      trend: null },
+                dashSettings.showKpiResolved !== false && { label: 'Résolus',      value: memoizedStats?.overview?.resolvedReports || 0, icon: '✅', color: '#10b981', bg: darkMode ? 'rgba(6,78,59,0.2)'   : '#ecfdf5', sub: `${Math.round(memoizedStats?.overview?.resolutionRate || 0)}% taux`, trend: 'up' },
+                dashSettings.showKpiUrgent   !== false && { label: 'Urgents',      value: urgentCount,                                   icon: '🚨', color: '#ef4444', bg: darkMode ? 'rgba(69,10,10,0.25)' : '#fef2f2', sub: 'Nécessitent action',  trend: urgentCount > 0 ? 'warn' : null },
+                dashSettings.showKpiCitizens !== false && { label: 'Citoyens',     value: memoizedStats?.overview?.totalUsers || 0,     icon: '👥', color: '#8b5cf6', bg: darkMode ? 'rgba(46,16,101,0.2)' : '#f5f3ff', sub: 'inscrits',            trend: 'up' },
+              ].filter(Boolean).map((s, i) => (
                 <div key={s.label}
                   style={{
                     background: darkMode ? '#1e293b' : '#fff',
@@ -851,17 +881,17 @@ export default function Dashboard() {
             </div>
 
             {/* ══ LIGNE 3 : Flux temps réel ══ */}
-            <LiveFeed reports={memoizedReports} onNavigate={handleTabChange} />
+            {dashSettings.showLiveFeed !== false && <LiveFeed reports={memoizedReports} onNavigate={handleTabChange} />}
 
             {/* ══ LIGNE 4 : Impact env + Activité 7j + Alertes ══ */}
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
 
               {/* Impact + Activité */}
               <div style={{ background: darkMode ? '#1e293b' : '#fff', borderRadius: 20, border: `1px solid ${darkMode ? '#334155' : '#f1f5f9'}`, padding: '20px 22px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-                <h3 style={{ fontSize: 14, fontWeight: 800, color: darkMode ? '#f1f5f9' : '#0f172a', margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                {dashSettings.showImpact === false ? null : <h3 style={{ fontSize: 14, fontWeight: 800, color: darkMode ? '#f1f5f9' : '#0f172a', margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ width: 28, height: 28, background: '#dcfce7', borderRadius: 8, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>🌍</span>
                   Impact environnemental
-                </h3>
+                </h3>}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 20 }}>
                   {[
                     { label: 'CO₂ évité',       value: `${(impactData.co2Saved||0).toLocaleString()}t`,                  bg: '#dcfce7', color: '#16a34a', icon: '🌿' },
@@ -950,9 +980,11 @@ export default function Dashboard() {
             </div>
 
             {/* ══ LIGNE 5 : Priorités IA ══ */}
-            <div style={{ background: darkMode ? '#1e293b' : '#fff', borderRadius: 20, border: `1px solid ${darkMode ? '#334155' : '#f1f5f9'}`, padding: '18px 20px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-              <AIPriorityEngine reports={memoizedReports} onPriorityUpdate={() => {}} />
-            </div>
+            {dashSettings.showAIPriority !== false && (
+              <div style={{ background: darkMode ? '#1e293b' : '#fff', borderRadius: 20, border: `1px solid ${darkMode ? '#334155' : '#f1f5f9'}`, padding: '18px 20px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                <AIPriorityEngine reports={memoizedReports} onPriorityUpdate={() => {}} />
+              </div>
+            )}
 
           </div>
         );
@@ -1117,7 +1149,15 @@ export default function Dashboard() {
             refreshInterval={refreshInterval}
             onRefreshIntervalChange={setRefreshInterval}
             onSettingsChange={(s) => {
+              setDashSettings(s);
               if (s.sidebarCollapsed !== undefined) setCollapsed(s.sidebarCollapsed);
+              // Appliquer fontSize globalement
+              if (s.fontSize) {
+                const sizes = { sm: '13px', md: '14px', lg: '16px' };
+                document.documentElement.style.fontSize = sizes[s.fontSize] || '14px';
+              }
+              // Appliquer compact mode
+              document.documentElement.classList.toggle('compact', !!s.compactMode);
             }}
           />
         );

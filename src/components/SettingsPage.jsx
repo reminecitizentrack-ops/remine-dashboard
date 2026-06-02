@@ -204,7 +204,8 @@ export function SettingsPage({ onSettingsChange, currentDarkMode, onDarkModeChan
       }
       if (key === 'fontSize') {
         const sizes = { sm: '13px', md: '14px', lg: '16px' };
-        document.documentElement.style.setProperty('font-size', sizes[value] || '14px');
+        document.documentElement.style.fontSize = sizes[value] || '14px';
+        document.body.style.fontSize = sizes[value] || '14px';
       }
       if (key === 'animationsEnabled') {
         document.documentElement.style.setProperty('--duration-normal', value ? '250ms' : '0ms');
@@ -212,6 +213,8 @@ export function SettingsPage({ onSettingsChange, currentDarkMode, onDarkModeChan
       }
       if (key === 'compactMode') {
         document.documentElement.classList.toggle('compact', value);
+        // Réduire le padding global en mode compact
+        document.documentElement.style.setProperty('--compact-scale', value ? '0.85' : '1');
       }
 
       onSettingsChange?.(next);
@@ -441,7 +444,7 @@ export function SettingsPage({ onSettingsChange, currentDarkMode, onDarkModeChan
         {section === 'security' && (
           <>
             <Section title="Session" icon="🔒" dm={dm}>
-              <SettingRow label="Délai d'expiration de session" description={`Déconnexion automatique après ${settings.sessionTimeout} minutes d'inactivité`} dm={dm}>
+              <SettingRow label="Délai d'expiration de session" description={`Déconnexion automatique après ${settings.sessionTimeout} min · Se réinitialise à la prochaine session`} dm={dm}>
                 <div style={{ width: 200 }}>
                   <Slider value={settings.sessionTimeout} onChange={v => update('sessionTimeout', v)} min={15} max={480} step={15} unit=" min" dm={dm} />
                 </div>
@@ -489,7 +492,12 @@ export function SettingsPage({ onSettingsChange, currentDarkMode, onDarkModeChan
         {section === 'themes' && (
           <Section title="Thèmes prédéfinis" icon="🖌️" dm={dm}>
             <div style={{ padding: '12px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <p style={{ fontSize: 12, color: textSec, margin: '0 0 4px' }}>Choisissez un thème pour personnaliser l'apparence complète du dashboard</p>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 4 }}>
+                <p style={{ fontSize: 12, color: textSec, margin: 0 }}>Choisissez un thème pour personnaliser l'apparence complète du dashboard</p>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#10b981', background: darkMode ? 'rgba(16,185,129,0.1)' : '#ecfdf5', padding: '3px 10px', borderRadius: 99 }}>
+                  {THEMES[settings.theme]?.emoji || '🌍'} {THEMES[settings.theme]?.label || 'ReMine'} actif
+                </span>
+              </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 {Object.entries(THEMES).map(([key, t]) => {
                   const isActive = settings.theme === key;
@@ -548,7 +556,12 @@ export function SettingsPage({ onSettingsChange, currentDarkMode, onDarkModeChan
 
             <Section title="Raccourcis rapides" icon="⚡" dm={dm}>
               <div style={{ padding: '10px 0' }}>
-                <p style={{ fontSize: 12, color: textSec, margin: '0 0 12px' }}>Ces raccourcis apparaissent dans la sidebar pour un accès rapide</p>
+                <p style={{ fontSize: 12, color: textSec, margin: '0 0 12px' }}>
+                  Ces préférences sont sauvegardées et utilisées au prochain chargement.
+                  <span style={{ display:'block', fontSize:11, color:textMut, marginTop:4 }}>
+                    ℹ️ L'affichage des raccourcis dans la sidebar sera activé dans une prochaine mise à jour.
+                  </span>
+                </p>
                 {[
                   { key: 'pinSignalements', label: 'Épingler Signalements', default: true },
                   { key: 'pinAnalyse',      label: 'Épingler Analyse',      default: true },
