@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { dashboardAPI } from '../services/api';
 import * as XLSX from 'xlsx';
+import { LOGO_BASE64 } from '../assets/logo';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 const TYPE_LABELS = {
@@ -210,14 +211,9 @@ export function ExportModal({ onClose, reports: allReports = [], stats }) {
     const genDate    = new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
     const genTime    = new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
 
-    // ── Logo SVG ReMine ────────────────────────────────────────────────────────
-    const LOGO = `<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="48" height="48" rx="12" fill="white" fill-opacity="0.2"/>
-      <circle cx="24" cy="20" r="9" stroke="white" stroke-width="2.5" fill="none"/>
-      <path d="M24 29 L24 42" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-      <path d="M17 36 L31 36" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-      <circle cx="24" cy="20" r="3.5" fill="white"/>
-    </svg>`;
+    // ── Logo ReMine (base64 réel depuis assets) ───────────────────────────────
+    const LOGO_IMG = `<img src="${LOGO_BASE64}" alt="ReMine" style="width:52px;height:52px;border-radius:12px;object-fit:contain;background:rgba(255,255,255,0.15);padding:4px"/>`;
+    const LOGO = LOGO_IMG;
 
     // ── Barre SVG horizontale ─────────────────────────────────────────────────
     const bar = (n, max, color) => {
@@ -404,7 +400,7 @@ export function ExportModal({ onClose, reports: allReports = [], stats }) {
   <!-- Header répété -->
   <div style="background:linear-gradient(135deg,#064e3b,#10b981);color:#fff;padding:10px 16px;border-radius:10px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
     <div style="display:flex;align-items:center;gap:10px">
-      ${LOGO.replace('width="48" height="48"','width="32" height="32"')}
+      <img src="${LOGO_BASE64}" alt="ReMine" style="width:36px;height:36px;border-radius:10px;object-fit:contain;background:rgba(255,255,255,0.15);padding:3px"/>
       <div>
         <span style="font-size:14px;font-weight:900">ReMine</span>
         <span style="font-size:11px;opacity:0.8;margin-left:8px">Citizen Track</span>
