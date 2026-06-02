@@ -494,7 +494,7 @@ export function SettingsPage({ onSettingsChange, currentDarkMode, onDarkModeChan
             <div style={{ padding: '12px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 4 }}>
                 <p style={{ fontSize: 12, color: textSec, margin: 0 }}>Choisissez un thème pour personnaliser l'apparence complète du dashboard</p>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#10b981', background: darkMode ? 'rgba(16,185,129,0.1)' : '#ecfdf5', padding: '3px 10px', borderRadius: 99 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#10b981', background: dm ? 'rgba(16,185,129,0.1)' : '#ecfdf5', padding: '3px 10px', borderRadius: 99 }}>
                   {THEMES[settings.theme]?.emoji || '🌍'} {THEMES[settings.theme]?.label || 'ReMine'} actif
                 </span>
               </div>
