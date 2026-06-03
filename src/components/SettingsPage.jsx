@@ -1,5 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { dashboardAPI } from '../services/api';
+import {
+  Palette, Layout, Bell, Database, Lock, Wrench, Info,
+  Moon, Sun, Type, Sidebar, Zap, Map, Layers,
+  RefreshCw, Clock, FileDown, FileUp, Keyboard,
+  Eye, EyeOff, Trash2, LogOut, Check, Save, RotateCcw,
+  Monitor, Smartphone, Shield, User, Globe,
+} from 'lucide-react';
 
 // ─── Hook dark mode ───────────────────────────────────────────────────────────
 function useDark() {
@@ -253,13 +260,13 @@ export function SettingsPage({ onSettingsChange, currentDarkMode, onDarkModeChan
   }, []);
 
   const SECTIONS = [
-    { id: 'appearance',    label: 'Apparence',      icon: '🎨', desc: 'Thèmes, couleurs, police' },
-    { id: 'perso',         label: 'Personnalisation', icon: '🧩', desc: 'Dashboard, carte, widgets' },
-    { id: 'notifications', label: 'Notifications',  icon: '🔔', desc: 'Alertes et événements' },
-    { id: 'data',          label: 'Données',         icon: '📊', desc: 'Refresh, export, cache' },
-    { id: 'security',      label: 'Sécurité',        icon: '🔒', desc: 'Session, compte, accès' },
-    { id: 'tools',         label: 'Outils',          icon: '🛠️', desc: 'Raccourcis, config' },
-    { id: 'about',         label: 'À propos',        icon: 'ℹ️', desc: 'Version, stack technique' },
+    { id: 'appearance',    label: 'Apparence',       icon: <Palette  size={16}/>, desc: 'Thèmes, couleurs, police'  },
+    { id: 'perso',         label: 'Personnalisation', icon: <Layout   size={16}/>, desc: 'Dashboard, carte, widgets' },
+    { id: 'notifications', label: 'Notifications',   icon: <Bell     size={16}/>, desc: 'Alertes et événements'     },
+    { id: 'data',          label: 'Données',          icon: <Database size={16}/>, desc: 'Refresh, export, cache'    },
+    { id: 'security',      label: 'Sécurité',         icon: <Lock     size={16}/>, desc: 'Session, compte, accès'    },
+    { id: 'tools',         label: 'Outils',           icon: <Wrench   size={16}/>, desc: 'Raccourcis, config'        },
+    { id: 'about',         label: 'À propos',         icon: <Info     size={16}/>, desc: 'Version, stack technique'  },
   ];
 
   const textPri = dm ? '#f1f5f9' : '#0f172a';
@@ -296,7 +303,7 @@ export function SettingsPage({ onSettingsChange, currentDarkMode, onDarkModeChan
         {/* Boutons bas */}
         <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 6, paddingTop: 16 }}>
           <button onClick={handleSave} style={{ padding: '9px 12px', borderRadius: 12, border: 'none', background: saved ? '#dcfce7' : 'linear-gradient(135deg,#10b981,#059669)', color: saved ? '#16a34a' : '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', boxShadow: saved ? 'none' : '0 4px 12px rgba(16,185,129,0.3)', transition: 'all 0.2s' }}>
-            {saved ? '✅ Sauvegardé' : '💾 Sauvegarder'}
+            {saved ? '✅ Sauvegardé' : 'Sauvegarder'}
           </button>
           <button onClick={handleReset} style={{ padding: '7px 12px', borderRadius: 12, border: `1px solid ${dm ? '#334155' : '#e2e8f0'}`, background: 'transparent', color: textSec, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
             ↺ Réinitialiser
@@ -317,7 +324,7 @@ export function SettingsPage({ onSettingsChange, currentDarkMode, onDarkModeChan
         {/* ══ APPARENCE ══════════════════════════════════════════════════════ */}
         {section === 'appearance' && (
           <>
-            <Section title="Apparence" icon="🎨" dm={dm}>
+            <Section title="Apparence" icon={<Palette  size={17}/>} dm={dm}>
               <SettingRow label="Mode sombre" description="Interface en thème sombre" dm={dm}>
                 <Toggle checked={settings.darkMode} onChange={v => update('darkMode', v)} />
               </SettingRow>
@@ -339,7 +346,7 @@ export function SettingsPage({ onSettingsChange, currentDarkMode, onDarkModeChan
               </SettingRow>
             </Section>
 
-            <Section title="Couleur d'accent" icon="🎨" dm={dm}>
+            <Section title="Couleur d'accent" icon={<Palette  size={17}/>} dm={dm}>
               <div style={{ padding: '12px 0' }}>
                 <p style={{ fontSize: 12, color: textSec, margin: '0 0 12px' }}>Couleur principale de l'interface</p>
                 <ColorPicker value={settings.accentColor} onChange={v => update('accentColor', v)} />
@@ -357,7 +364,7 @@ export function SettingsPage({ onSettingsChange, currentDarkMode, onDarkModeChan
 
         {/* ══ DONNÉES ════════════════════════════════════════════════════════ */}
         {section === 'data' && (
-          <Section title="Données & Actualisation" icon="📊" dm={dm}>
+          <Section title="Données & Actualisation" icon={<Database size={17}/>} dm={dm}>
             <SettingRow label="Actualisation automatique" description="Rafraîchir les données en arrière-plan" dm={dm}>
               <Toggle checked={settings.autoRefresh} onChange={v => update('autoRefresh', v)} />
             </SettingRow>
@@ -392,7 +399,7 @@ export function SettingsPage({ onSettingsChange, currentDarkMode, onDarkModeChan
         {/* ══ NOTIFICATIONS ══════════════════════════════════════════════════ */}
         {section === 'notifications' && (
           <>
-            <Section title="Événements" icon="🔔" dm={dm}>
+            <Section title="Événements" icon={<Bell     size={17}/>} dm={dm}>
               <SettingRow label="Nouveaux signalements" description="Notification à chaque nouveau signalement" dm={dm}>
                 <Toggle checked={settings.notifNewReport} onChange={v => update('notifNewReport', v)} />
               </SettingRow>
@@ -425,7 +432,7 @@ export function SettingsPage({ onSettingsChange, currentDarkMode, onDarkModeChan
 
         {/* ══ CARTE ══════════════════════════════════════════════════════════ */}
         {section === 'perso' && (
-          <Section title="Carte interactive" icon="🗺️" dm={dm}>
+          <Section title="Carte interactive" icon={<Map      size={17}/>} dm={dm}>
             <SettingRow label="Fond de carte par défaut" description="Style de carte affiché à l'ouverture" dm={dm}>
               <Select value={settings.defaultMapStyle} onChange={v => update('defaultMapStyle', v)} dm={dm} options={[
                 { value: 'standard',  label: '🗺️ Standard'  },
@@ -443,7 +450,7 @@ export function SettingsPage({ onSettingsChange, currentDarkMode, onDarkModeChan
         {/* ══ SÉCURITÉ ═══════════════════════════════════════════════════════ */}
         {section === 'security' && (
           <>
-            <Section title="Session" icon="🔒" dm={dm}>
+            <Section title="Session" icon={<Lock     size={17}/>} dm={dm}>
               <SettingRow label="Délai d'expiration de session" description={`Déconnexion automatique après ${settings.sessionTimeout} min · Se réinitialise à la prochaine session`} dm={dm}>
                 <div style={{ width: 200 }}>
                   <Slider value={settings.sessionTimeout} onChange={v => update('sessionTimeout', v)} min={15} max={480} step={15} unit=" min" dm={dm} />
@@ -454,7 +461,7 @@ export function SettingsPage({ onSettingsChange, currentDarkMode, onDarkModeChan
               </SettingRow>
             </Section>
 
-            <Section title="Compte" icon="👤" dm={dm}>
+            <Section title="Compte" icon={<User     size={17}/>} dm={dm}>
               <div style={{ padding: '12px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {/* Info profil */}
                 {(() => {
@@ -490,7 +497,7 @@ export function SettingsPage({ onSettingsChange, currentDarkMode, onDarkModeChan
         {/* ══ AVANCÉ ═════════════════════════════════════════════════════════ */}
         {/* ══ THÈMES ══════════════════════════════════════════════════════════ */}
         {section === 'appearance' && (
-          <Section title="Thèmes prédéfinis" icon="🖌️" dm={dm}>
+          <Section title="Thèmes prédéfinis" icon={<Palette  size={17}/>} dm={dm}>
             <div style={{ padding: '12px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 4 }}>
                 <p style={{ fontSize: 12, color: textSec, margin: 0 }}>Choisissez un thème pour personnaliser l'apparence complète du dashboard</p>
@@ -538,7 +545,7 @@ export function SettingsPage({ onSettingsChange, currentDarkMode, onDarkModeChan
         {/* ══ DASHBOARD ═════════════════════════════════════════════════════════ */}
         {section === 'perso' && (
           <>
-            <Section title="Widgets de l'Aperçu" icon="🧩" dm={dm}>
+            <Section title="Widgets de l'Aperçu" icon={<Layout   size={17}/>} dm={dm}>
               {[
                 { key: 'showKpiReports',  label: 'KPI Signalements',     icon: '📋', desc: 'Carte total des signalements' },
                 { key: 'showKpiResolved', label: 'KPI Résolus',          icon: '✅', desc: 'Carte taux de résolution' },
@@ -554,7 +561,7 @@ export function SettingsPage({ onSettingsChange, currentDarkMode, onDarkModeChan
               ))}
             </Section>
 
-            <Section title="Raccourcis rapides" icon="⚡" dm={dm}>
+            <Section title="Raccourcis rapides" icon={<Zap      size={17}/>} dm={dm}>
               <div style={{ padding: '10px 0' }}>
                 <p style={{ fontSize: 12, color: textSec, margin: '0 0 12px' }}>
                   Ces préférences sont sauvegardées et utilisées au prochain chargement.
@@ -579,7 +586,7 @@ export function SettingsPage({ onSettingsChange, currentDarkMode, onDarkModeChan
 
         {/* ══ RACCOURCIS CLAVIER ══════════════════════════════════════════════ */}
         {section === 'tools' && (
-          <Section title="Raccourcis clavier" icon="⌨️" dm={dm}>
+          <Section title="Raccourcis clavier" icon={<Keyboard size={17}/>} dm={dm}>
             <div style={{ padding: '8px 0', display: 'flex', flexDirection: 'column', gap: 2 }}>
               <p style={{ fontSize: 11, color: textSec, margin: '0 0 16px' }}>Tous les raccourcis actifs dans le dashboard</p>
               {[
@@ -629,7 +636,7 @@ export function SettingsPage({ onSettingsChange, currentDarkMode, onDarkModeChan
                 {/* ══ IMPORT / EXPORT CONFIG ════════════════════════════════════════════ */}
         {section === 'tools' && (
           <>
-            <Section title="Exporter la configuration" icon="📤" dm={dm}>
+            <Section title="Exporter la configuration" icon={<FileUp   size={17}/>} dm={dm}>
               <div style={{ padding: '12px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <p style={{ fontSize: 12, color: textSec, margin: 0 }}>Sauvegardez tous vos paramètres dans un fichier JSON pour les restaurer plus tard ou les transférer sur un autre appareil.</p>
                 <button onClick={() => {
@@ -649,7 +656,7 @@ export function SettingsPage({ onSettingsChange, currentDarkMode, onDarkModeChan
               </div>
             </Section>
 
-            <Section title="Importer une configuration" icon="📂" dm={dm}>
+            <Section title="Importer une configuration" icon={<FileDown size={17}/>} dm={dm}>
               <div style={{ padding: '12px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <p style={{ fontSize: 12, color: textSec, margin: 0 }}>Restaurez une configuration précédemment exportée. Les paramètres actuels seront remplacés.</p>
                 <label style={{ padding: '10px 16px', borderRadius: 12, border: `2px dashed ${dm ? '#334155' : '#e2e8f0'}`, background: bgMut, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, transition: 'all 0.15s' }}
@@ -696,7 +703,7 @@ export function SettingsPage({ onSettingsChange, currentDarkMode, onDarkModeChan
 
         {section === 'data' && (
           <>
-            <Section title="Développement" icon="⚙️" dm={dm}>
+            <Section title="Développement" icon={<Wrench   size={17}/>} dm={dm}>
               <SettingRow label="Mode debug" description="Afficher les logs dans la console" dm={dm}>
                 <Toggle checked={settings.debugMode} onChange={v => update('debugMode', v)} />
               </SettingRow>
@@ -709,7 +716,7 @@ export function SettingsPage({ onSettingsChange, currentDarkMode, onDarkModeChan
               </SettingRow>
             </Section>
 
-            <Section title="Stockage local" icon="💾" dm={dm}>
+            <Section title="Stockage local" icon={<FileDown size={17}/>} dm={dm}>
               <div style={{ padding: '12px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {/* Utilisation localStorage */}
                 {(() => {
@@ -741,7 +748,7 @@ export function SettingsPage({ onSettingsChange, currentDarkMode, onDarkModeChan
 
         {/* ══ À PROPOS ═══════════════════════════════════════════════════════ */}
         {section === 'about' && (
-          <Section title="À propos de ReMine" icon="ℹ️" dm={dm}>
+          <Section title="À propos de ReMine" icon={<Info     size={17}/>} dm={dm}>
             <div style={{ padding: '16px 0', display: 'flex', flexDirection: 'column', gap: 14 }}>
               {/* Logo + version */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>

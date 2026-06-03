@@ -1,5 +1,12 @@
 // pages/dashboard.jsx — DESIGN MODERNE (avec tous les composants intégrés)
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import {
+  LayoutDashboard, ClipboardList, BarChart3, Gem, Users,
+  ShieldCheck, Settings, Bell, RefreshCw, Download,
+  AlertTriangle, CheckCircle, UserCheck, Leaf, Droplets,
+  Recycle, DollarSign, Activity, TrendingUp, MapPin,
+  Search, LogOut, ChevronDown, Zap, Globe,
+} from 'lucide-react';
 import { StatsOverview }       from '../components/StatsOverview';
 import { ReportsTable }        from '../components/ReportsTable';
 import { RecentActivity }      from '../components/RecentActivity';
@@ -43,26 +50,36 @@ const formatFCFA = (euros) => {
   return `${n.toLocaleString('fr-FR')} FCFA`;
 };
 
+const TAB_ICONS = {
+  overview:     <LayoutDashboard size={17} />,
+  reports:      <ClipboardList   size={17} />,
+  analyse:      <BarChart3       size={17} />,
+  valorization: <Gem             size={17} />,
+  citoyens:     <Users           size={17} />,
+  admin:        <ShieldCheck     size={17} />,
+  settings:     <Settings        size={17} />,
+};
+
 const TABS = [
-  { id: 'overview',     label: 'Aperçu',        icon: '⬡',  desc: "Vue d'ensemble"            },
-  { id: 'reports',      label: 'Signalements',  icon: '📋', desc: 'Signalements & carte'      },
-  { id: 'analyse',      label: 'Analyse',       icon: '✦',  desc: 'IA, stats & régions'       },
-  { id: 'valorization', label: 'Valorisation',  icon: '◈',  desc: 'Projets de valorisation'   },
-  { id: 'citoyens',     label: 'Citoyens',      icon: '◉',  desc: 'Utilisateurs & messagerie' },
-  { id: 'admin',        label: 'Administration',icon: '🗂️', desc: 'Audit, tags & rapports'    },
-  { id: 'settings',     label: 'Paramètres',    icon: '⚙️', desc: 'Configuration du dashboard'},
-];
+  { id: 'overview',     label: 'Aperçu',         desc: "Vue d'ensemble"            },
+  { id: 'reports',      label: 'Signalements',   desc: 'Signalements & carte'      },
+  { id: 'analyse',      label: 'Analyse',        desc: 'IA, stats & régions'       },
+  { id: 'valorization', label: 'Valorisation',   desc: 'Projets de valorisation'   },
+  { id: 'citoyens',     label: 'Citoyens',       desc: 'Utilisateurs & messagerie' },
+  { id: 'admin',        label: 'Administration', desc: 'Audit, tags & rapports'    },
+  { id: 'settings',     label: 'Paramètres',     desc: 'Configuration du dashboard'},
+].map(t => ({ ...t, icon: TAB_ICONS[t.id] }));
 
 // ==================== SOUS-COMPOSANTS ====================
 
 const Toast = ({ toast, onClose }) => {
   if (!toast.show) return null;
   const cfg = {
-    success: { bg: 'bg-emerald-500', icon: '✓' },
-    error:   { bg: 'bg-red-500',     icon: '✕' },
-    warning: { bg: 'bg-amber-500',   icon: '!' },
-    info:    { bg: 'bg-blue-500',    icon: 'i' },
-  }[toast.type] || { bg: 'bg-blue-500', icon: 'i' };
+    success: { bg: 'bg-emerald-500', icon: <CheckCircle   size={14} color="#fff"/> },
+    error:   { bg: 'bg-red-500',     icon: <AlertTriangle size={14} color="#fff"/> },
+    warning: { bg: 'bg-amber-500',   icon: <AlertTriangle size={14} color="#fff"/> },
+    info:    { bg: 'bg-blue-500',    icon: <Activity      size={14} color="#fff"/> },
+  }[toast.type] || { bg: 'bg-blue-500', icon: <Activity size={14} color="#fff"/> };
 
   return (
     <div className={`fixed top-5 right-5 z-50 flex items-start gap-3 px-4 py-3 rounded-xl shadow-2xl text-white ${cfg.bg} max-w-sm animate-in slide-in-from-right-full duration-300`}>
@@ -156,23 +173,22 @@ const NavItem = ({ tab, active, onClick, badge, collapsed = false }) => {
       <span style={{
         width: 34, height: 34, flexShrink: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        borderRadius: 10, fontSize: 17, position: 'relative',
+        borderRadius: 10, position: 'relative',
         background: active
           ? 'linear-gradient(135deg, #10b981, #059669)'
           : hovered ? (isDark ? '#334155' : '#f3f4f6') : (isDark ? '#1e293b' : '#f9fafb'),
         boxShadow: active ? '0 4px 12px rgba(16,185,129,0.3)' : 'none',
         transform: active ? 'scale(1.08)' : hovered ? 'scale(1.04)' : 'scale(1)',
         transition: 'all 0.2s cubic-bezier(0.34,1.56,0.64,1)',
-        filter: active ? 'brightness(1.1)' : 'none',
+        color: active ? '#fff' : hovered ? (isDark ? '#e2e8f0' : '#374151') : (isDark ? '#9ca3af' : '#6b7280'),
       }}>
         <span
           key={iconKey}
           className={iconKey > 0 ? 'nav-icon-activate' : ''}
           style={{
-            display: 'inline-block',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             transform: (iconKey === 0 && hovered && !active) ? 'rotate(-8deg) scale(1.15)' : 'rotate(0) scale(1)',
             transition: iconKey > 0 ? 'none' : 'transform 0.2s cubic-bezier(0.34,1.56,0.64,1)',
-            filter: active ? 'brightness(0) invert(1)' : 'none',
           }}
         >
           {tab.icon}
@@ -731,10 +747,10 @@ export default function Dashboard() {
             {/* ══ LIGNE 1 : 4 KPI cards ══ */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
               {[
-                dashSettings.showKpiReports  !== false && { label: 'Signalements', value: memoizedStats?.overview?.totalReports || 0,  icon: '📋', color: '#3b82f6', bg: darkMode ? 'rgba(30,58,138,0.2)'  : '#eff6ff', sub: `${memoizedStats?.overview?.activeReports || 0} actifs`,      trend: null },
-                dashSettings.showKpiResolved !== false && { label: 'Résolus',      value: memoizedStats?.overview?.resolvedReports || 0, icon: '✅', color: '#10b981', bg: darkMode ? 'rgba(6,78,59,0.2)'   : '#ecfdf5', sub: `${Math.round(memoizedStats?.overview?.resolutionRate || 0)}% taux`, trend: 'up' },
-                dashSettings.showKpiUrgent   !== false && { label: 'Urgents',      value: urgentCount,                                   icon: '🚨', color: '#ef4444', bg: darkMode ? 'rgba(69,10,10,0.25)' : '#fef2f2', sub: 'Nécessitent action',  trend: urgentCount > 0 ? 'warn' : null },
-                dashSettings.showKpiCitizens !== false && { label: 'Citoyens',     value: memoizedStats?.overview?.totalUsers || 0,     icon: '👥', color: '#8b5cf6', bg: darkMode ? 'rgba(46,16,101,0.2)' : '#f5f3ff', sub: 'inscrits',            trend: 'up' },
+                dashSettings.showKpiReports  !== false && { label: 'Signalements', value: memoizedStats?.overview?.totalReports || 0,  icon: <ClipboardList size={22}/>, color: '#3b82f6', bg: darkMode ? 'rgba(30,58,138,0.2)'  : '#eff6ff', sub: `${memoizedStats?.overview?.activeReports || 0} actifs`,      trend: null },
+                dashSettings.showKpiResolved !== false && { label: 'Résolus',      value: memoizedStats?.overview?.resolvedReports || 0, icon: <CheckCircle   size={22}/>, color: '#10b981', bg: darkMode ? 'rgba(6,78,59,0.2)'   : '#ecfdf5', sub: `${Math.round(memoizedStats?.overview?.resolutionRate || 0)}% taux`, trend: 'up' },
+                dashSettings.showKpiUrgent   !== false && { label: 'Urgents',      value: urgentCount,                                   icon: <AlertTriangle size={22}/>, color: '#ef4444', bg: darkMode ? 'rgba(69,10,10,0.25)' : '#fef2f2', sub: 'Nécessitent action',  trend: urgentCount > 0 ? 'warn' : null },
+                dashSettings.showKpiCitizens !== false && { label: 'Citoyens',     value: memoizedStats?.overview?.totalUsers || 0,     icon: <UserCheck     size={22}/>, color: '#8b5cf6', bg: darkMode ? 'rgba(46,16,101,0.2)' : '#f5f3ff', sub: 'inscrits',            trend: 'up' },
               ].filter(Boolean).map((s, i) => (
                 <div key={s.label}
                   style={{
@@ -894,10 +910,10 @@ export default function Dashboard() {
                 </h3>}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 20 }}>
                   {[
-                    { label: 'CO₂ évité',       value: `${(impactData.co2Saved||0).toLocaleString()}t`,                  bg: '#dcfce7', color: '#16a34a', icon: '🌿' },
-                    { label: 'Eau protégée',     value: `${((impactData.waterProtected||0)/1000).toFixed(0)}k L`,          bg: '#dbeafe', color: '#1d4ed8', icon: '💧' },
-                    { label: 'Déchets traités',  value: `${(impactData.wasteProcessed||0).toLocaleString()}t`,             bg: '#fef9c3', color: '#a16207', icon: '♻️' },
-                    { label: 'Revenus',          value: formatFCFA(impactData.revenueGenerated / EUR_TO_FCFA),             bg: '#ede9fe', color: '#6d28d9', icon: '💰' },
+                    { label: 'CO₂ évité',       value: `${(impactData.co2Saved||0).toLocaleString()}t`,                  bg: '#dcfce7', color: '#16a34a', icon: <Leaf       size={18}/> },
+                    { label: 'Eau protégée',     value: `${((impactData.waterProtected||0)/1000).toFixed(0)}k L`,          bg: '#dbeafe', color: '#1d4ed8', icon: <Droplets   size={18}/> },
+                    { label: 'Déchets traités',  value: `${(impactData.wasteProcessed||0).toLocaleString()}t`,             bg: '#fef9c3', color: '#a16207', icon: <Recycle    size={18}/> },
+                    { label: 'Revenus',          value: formatFCFA(impactData.revenueGenerated / EUR_TO_FCFA),             bg: '#ede9fe', color: '#6d28d9', icon: <DollarSign size={18}/> },
                   ].map(m => (
                     <div key={m.label} style={{ borderRadius: 14, padding: '12px 14px', background: darkMode ? `${m.color}18` : m.bg, border: `1px solid ${m.color}25` }}>
                       <span style={{ fontSize: 18 }}>{m.icon}</span>
@@ -993,9 +1009,9 @@ export default function Dashboard() {
         return (
           <TabGroup
             tabs={[
-              { id: 'list',  label: 'Liste',   icon: '📋' },
-              { id: 'map',   label: 'Carte',   icon: '🗺️' },
-              { id: 'votes', label: 'Votes',   icon: '👍' },
+              { id: 'list',  label: 'Liste',   icon: <ClipboardList size={14}/> },
+              { id: 'map',   label: 'Carte',   icon: <MapPin size={14}/> },
+              { id: 'votes', label: 'Votes',   icon: <TrendingUp size={14}/> },
             ]}
           >
             {(sub) => sub === 'votes'
@@ -1035,10 +1051,10 @@ export default function Dashboard() {
         return (
           <TabGroup
             tabs={[
-              { id: 'ia',        label: 'Insights IA', icon: '✦' },
+              { id: 'ia',        label: 'Insights IA', icon: <Zap size={14}/> },
               { id: 'analytics', label: 'Analytics',   icon: '↗' },
-              { id: 'stats',     label: 'Statistiques',icon: '📊' },
-              { id: 'regions',   label: 'Régions',     icon: '🗺️' },
+              { id: 'stats',     label: 'Statistiques', icon: <Activity   size={14}/> },
+              { id: 'regions',   label: 'Régions',      icon: <Globe      size={14}/> },
             ]}
           >
             {(sub) => {
@@ -1092,7 +1108,7 @@ export default function Dashboard() {
         return (
           <TabGroup
             tabs={[
-              { id: 'users',     label: 'Utilisateurs', icon: '◉' },
+              { id: 'users',     label: 'Utilisateurs', icon: <Users size={14}/> },
               { id: 'messaging', label: 'Messagerie',   icon: '✉️' },
             ]}
           >
@@ -1109,8 +1125,8 @@ export default function Dashboard() {
             tabs={[
               { id: 'audit',      label: 'Journal audit', icon: '🗑️' },
               { id: 'history',    label: 'Historique',    icon: '⏱️' },
-              { id: 'tags',       label: 'Tags',          icon: '🏷️' },
-              { id: 'autoreport', label: 'Rapport auto',  icon: '📄' },
+              { id: 'tags',       label: 'Tags',          icon: <Zap        size={14}/> },
+              { id: 'autoreport', label: 'Rapport auto',  icon: <Download   size={14}/> },
             ]}
           >
             {(sub) => {
