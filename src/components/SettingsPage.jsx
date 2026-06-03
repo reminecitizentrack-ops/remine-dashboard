@@ -253,17 +253,13 @@ export function SettingsPage({ onSettingsChange, currentDarkMode, onDarkModeChan
   }, []);
 
   const SECTIONS = [
-    { id: 'appearance',    label: 'Apparence',     icon: '🎨' },
-    { id: 'themes',        label: 'Thèmes',        icon: '🖌️' },
-    { id: 'dashboard',     label: 'Dashboard',     icon: '🧩' },
-    { id: 'data',          label: 'Données',       icon: '📊' },
-    { id: 'notifications', label: 'Notifications', icon: '🔔' },
-    { id: 'map',           label: 'Carte',         icon: '🗺️' },
-    { id: 'security',      label: 'Sécurité',      icon: '🔒' },
-    { id: 'shortcuts',     label: 'Raccourcis',    icon: '⌨️' },
-    { id: 'config',        label: 'Import/Export', icon: '💾' },
-    { id: 'advanced',      label: 'Avancé',        icon: '⚙️' },
-    { id: 'about',         label: 'À propos',      icon: 'ℹ️' },
+    { id: 'appearance',    label: 'Apparence',      icon: '🎨', desc: 'Thèmes, couleurs, police' },
+    { id: 'perso',         label: 'Personnalisation', icon: '🧩', desc: 'Dashboard, carte, widgets' },
+    { id: 'notifications', label: 'Notifications',  icon: '🔔', desc: 'Alertes et événements' },
+    { id: 'data',          label: 'Données',         icon: '📊', desc: 'Refresh, export, cache' },
+    { id: 'security',      label: 'Sécurité',        icon: '🔒', desc: 'Session, compte, accès' },
+    { id: 'tools',         label: 'Outils',          icon: '🛠️', desc: 'Raccourcis, config' },
+    { id: 'about',         label: 'À propos',        icon: 'ℹ️', desc: 'Version, stack technique' },
   ];
 
   const textPri = dm ? '#f1f5f9' : '#0f172a';
@@ -280,16 +276,20 @@ export function SettingsPage({ onSettingsChange, currentDarkMode, onDarkModeChan
         {SECTIONS.map(s => (
           <button key={s.id} onClick={() => setSection(s.id)} style={{
             display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 12,
-            border: 'none', cursor: 'pointer', textAlign: 'left', width: '100%', fontSize: 13, fontWeight: 600,
+            border: 'none', cursor: 'pointer', textAlign: 'left', width: '100%',
             background: section === s.id ? (dm ? 'rgba(16,185,129,0.15)' : '#ecfdf5') : 'transparent',
             color: section === s.id ? '#10b981' : textSec,
             transition: 'all 0.15s',
+            borderLeft: section === s.id ? '3px solid #10b981' : '3px solid transparent',
           }}
           onMouseEnter={e => { if (section !== s.id) e.currentTarget.style.background = dm ? '#1e293b' : '#f8fafc'; }}
           onMouseLeave={e => { if (section !== s.id) e.currentTarget.style.background = 'transparent'; }}
           >
-            <span style={{ fontSize: 16, width: 22, textAlign: 'center' }}>{s.icon}</span>
-            {s.label}
+            <span style={{ fontSize: 16, width: 22, textAlign: 'center', flexShrink: 0 }}>{s.icon}</span>
+            <div style={{ minWidth: 0 }}>
+              <p style={{ fontSize: 13, fontWeight: 600, margin: 0, color: section === s.id ? '#10b981' : textSec }}>{s.label}</p>
+              {s.desc && <p style={{ fontSize: 10, margin: '1px 0 0', color: textMut, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.desc}</p>}
+            </div>
           </button>
         ))}
 
@@ -424,7 +424,7 @@ export function SettingsPage({ onSettingsChange, currentDarkMode, onDarkModeChan
         )}
 
         {/* ══ CARTE ══════════════════════════════════════════════════════════ */}
-        {section === 'map' && (
+        {section === 'perso' && (
           <Section title="Carte interactive" icon="🗺️" dm={dm}>
             <SettingRow label="Fond de carte par défaut" description="Style de carte affiché à l'ouverture" dm={dm}>
               <Select value={settings.defaultMapStyle} onChange={v => update('defaultMapStyle', v)} dm={dm} options={[
@@ -489,7 +489,7 @@ export function SettingsPage({ onSettingsChange, currentDarkMode, onDarkModeChan
 
         {/* ══ AVANCÉ ═════════════════════════════════════════════════════════ */}
         {/* ══ THÈMES ══════════════════════════════════════════════════════════ */}
-        {section === 'themes' && (
+        {section === 'appearance' && (
           <Section title="Thèmes prédéfinis" icon="🖌️" dm={dm}>
             <div style={{ padding: '12px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 4 }}>
@@ -536,7 +536,7 @@ export function SettingsPage({ onSettingsChange, currentDarkMode, onDarkModeChan
         )}
 
         {/* ══ DASHBOARD ═════════════════════════════════════════════════════════ */}
-        {section === 'dashboard' && (
+        {section === 'perso' && (
           <>
             <Section title="Widgets de l'Aperçu" icon="🧩" dm={dm}>
               {[
@@ -578,7 +578,7 @@ export function SettingsPage({ onSettingsChange, currentDarkMode, onDarkModeChan
         )}
 
         {/* ══ RACCOURCIS CLAVIER ══════════════════════════════════════════════ */}
-        {section === 'shortcuts' && (
+        {section === 'tools' && (
           <Section title="Raccourcis clavier" icon="⌨️" dm={dm}>
             <div style={{ padding: '8px 0', display: 'flex', flexDirection: 'column', gap: 2 }}>
               <p style={{ fontSize: 11, color: textSec, margin: '0 0 16px' }}>Tous les raccourcis actifs dans le dashboard</p>
@@ -627,7 +627,7 @@ export function SettingsPage({ onSettingsChange, currentDarkMode, onDarkModeChan
         )}
 
                 {/* ══ IMPORT / EXPORT CONFIG ════════════════════════════════════════════ */}
-        {section === 'config' && (
+        {section === 'tools' && (
           <>
             <Section title="Exporter la configuration" icon="📤" dm={dm}>
               <div style={{ padding: '12px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -694,7 +694,7 @@ export function SettingsPage({ onSettingsChange, currentDarkMode, onDarkModeChan
           </>
         )}
 
-        {section === 'advanced' && (
+        {section === 'data' && (
           <>
             <Section title="Développement" icon="⚙️" dm={dm}>
               <SettingRow label="Mode debug" description="Afficher les logs dans la console" dm={dm}>
