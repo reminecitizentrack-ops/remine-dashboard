@@ -68,8 +68,18 @@ export const dashboardAPI = {
   // === MÉTHODE GÉNÉRIQUE ===
   async request(path, options = {}) {
     try {
-      const url = path.startsWith('http') ? path : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'}${path}`;
-      const res  = await authFetch(url, options);
+      // Utiliser API_BASE_URL (avec /api) pour les chemins /api/...
+      // Sinon construire depuis la base sans /api
+      let url;
+      if (path.startsWith('http')) {
+        url = path;
+      } else if (path.startsWith('/api/')) {
+        // Remplacer /api/ par API_BASE_URL/
+        url = `${API_BASE_URL}/${path.slice(5)}`;
+      } else {
+        url = `${API_BASE_URL}${path}`;
+      }
+      const res = await authFetch(url, options);
       return await res.json();
     } catch (error) {
       console.error('API request error:', error);
