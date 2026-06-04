@@ -47,14 +47,12 @@ const STATUS_LABELS = {
 };
 
 const TYPE_LABELS = {
-  water_pollution:    'Pollution eau',
-  dust:               'Poussière',
-  waste_deposit:      'Dépôt déchets',
-  abandoned_site:     'Site abandonné',
-  air_pollution:      'Pollution air',
-  soil_contamination: 'Contamination sol',
-  noise_pollution:    'Pollution sonore',
-  other:              'Autre',
+  water_pollution: 'Pollution eau', air_pollution: 'Pollution air',
+  soil_contamination: 'Contamination sol', waste_deposit: 'Dépôt déchets',
+  dust: 'Poussière', abandoned_site: 'Site abandonné',
+  noise_pollution: 'Pollution sonore', mining_waste: 'Déchets miniers',
+  industrial_waste: 'Déchets industriels', illegal_dumping: 'Dépôt sauvage',
+  other: 'Autre',
 };
 
 // ─── Utilitaires ──────────────────────────────────────────────────────────────

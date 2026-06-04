@@ -11,9 +11,13 @@ import { subDays, format, startOfDay, differenceInDays } from 'date-fns';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 const TYPE_LABELS = {
-  water_pollution: 'Eau', air_pollution: 'Air', soil_contamination: 'Sol',
-  waste_deposit: 'Déchets', dust: 'Poussière', abandoned_site: 'Site abandonné',
-  noise_pollution: 'Sonore', other: 'Autre',
+  water_pollution: 'Pollution eau', air_pollution: 'Pollution air',
+  soil_contamination: 'Contamination sol', waste_deposit: 'Dépôt déchets',
+  dust: 'Poussière', abandoned_site: 'Site abandonné',
+  noise_pollution: 'Pollution sonore', mining_waste: 'Déchets miniers',
+  industrial_waste: 'Déchets industriels', illegal_dumping: 'Dépôt sauvage',
+  chemical_spill: 'Déversement chimique', deforestation: 'Déforestation',
+  other: 'Autre',
 };
 const TYPE_COLORS = {
   water_pollution: '#3b82f6', air_pollution: '#8b5cf6', soil_contamination: '#92400e',

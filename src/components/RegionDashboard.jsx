@@ -8,8 +8,12 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pi
 
 const TYPE_LABELS = {
   water_pollution: 'Pollution eau', air_pollution: 'Pollution air',
-  soil_contamination: 'Sol', waste_deposit: 'Déchets',
-  dust: 'Poussière', noise_pollution: 'Sonore', other: 'Autre',
+  soil_contamination: 'Contamination sol', waste_deposit: 'Dépôt déchets',
+  dust: 'Poussière', abandoned_site: 'Site abandonné',
+  noise_pollution: 'Pollution sonore', mining_waste: 'Déchets miniers',
+  industrial_waste: 'Déchets industriels', illegal_dumping: 'Dépôt sauvage',
+  chemical_spill: 'Déversement chimique', deforestation: 'Déforestation',
+  other: 'Autre',
 };
 const STATUS_LABELS = {
   new: 'Nouveau', verified: 'Vérifié', in_progress: 'En cours',

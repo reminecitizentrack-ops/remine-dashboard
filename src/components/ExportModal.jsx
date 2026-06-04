@@ -8,7 +8,10 @@ const TYPE_LABELS = {
   water_pollution:'Pollution eau', air_pollution:'Pollution air',
   soil_contamination:'Contamination sol', waste_deposit:'Dépôt déchets',
   dust:'Poussière', abandoned_site:'Site abandonné',
-  noise_pollution:'Pollution sonore', other:'Autre',
+  noise_pollution:'Pollution sonore', mining_waste:'Déchets miniers',
+  industrial_waste:'Déchets industriels', illegal_dumping:'Dépôt sauvage',
+  chemical_spill:'Déversement chimique', deforestation:'Déforestation',
+  other:'Autre',
 };
 const STATUS_LABELS = { new:'Nouveau', verified:'Vérifié', in_progress:'En cours', resolved:'Résolu', rejected:'Rejeté' };
 const SEV_LABELS    = { low:'Faible', medium:'Moyen', high:'Élevé', critical:'Critique' };

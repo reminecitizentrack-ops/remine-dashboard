@@ -41,7 +41,15 @@ const TYPE_CONFIG = {
 // ==================== UTILITAIRES ====================
 
 const getDisplayId   = (r) => r?.id || r?._id || 'N/A';
-const getTypeConfig  = (type) => TYPE_CONFIG[type] || { icon: '📍', label: type?.replace('_', ' ') || 'Inconnu' };
+const TYPE_FR = {
+  water_pollution: 'Pollution eau', air_pollution: 'Pollution air',
+  soil_contamination: 'Contamination sol', waste_deposit: 'Dépôt déchets',
+  dust: 'Poussière', abandoned_site: 'Site abandonné', noise_pollution: 'Pollution sonore',
+  mining_waste: 'Déchets miniers', industrial_waste: 'Déchets industriels',
+  illegal_dumping: 'Dépôt sauvage', chemical_spill: 'Déversement chimique',
+  deforestation: 'Déforestation', other: 'Autre',
+};
+const getTypeConfig  = (type) => TYPE_CONFIG[type] || { icon: '📍', label: TYPE_FR[type] || (type ? type.split('_').map(w => w.charAt(0).toUpperCase()+w.slice(1)).join(' ') : 'Inconnu') };
 const getStatusCfg   = (s) => STATUS_CONFIG[s] || STATUS_CONFIG.new;
 const getSeverityCfg = (s) => SEVERITY_CONFIG[s] || SEVERITY_CONFIG.medium;
 

@@ -11,7 +11,7 @@ const TYPE_ICO   = { water_pollution:'💧', air_pollution:'💨', soil_contamin
 const SEV_COLOR  = { critical:'#dc2626', high:'#f97316', medium:'#f59e0b', low:'#22c55e' };
 const STA_LABEL  = { new:'Nouveau', verified:'Vérifié', in_progress:'En cours', resolved:'Résolu', rejected:'Rejeté' };
 const STA_COLOR  = { new:'#f59e0b', verified:'#3b82f6', in_progress:'#8b5cf6', resolved:'#10b981', rejected:'#ef4444' };
-const TYPE_LABEL = { water_pollution:'Eau', air_pollution:'Air', soil_contamination:'Sol', waste_deposit:'Déchets', dust:'Poussière', abandoned_site:'Site abandonné', noise_pollution:'Sonore', other:'Autre' };
+const TYPE_LABEL = { water_pollution:'Pollution eau', air_pollution:'Pollution air', soil_contamination:'Contamination sol', waste_deposit:'Dépôt déchets', dust:'Poussière', abandoned_site:'Site abandonné', noise_pollution:'Pollution sonore', mining_waste:'Déchets miniers', industrial_waste:'Déchets industriels', illegal_dumping:'Dépôt sauvage', chemical_spill:'Déversement chimique', deforestation:'Déforestation', other:'Autre' };
 
 // ─── Hook dark mode ───────────────────────────────────────────────────────────
 function useDark() {
