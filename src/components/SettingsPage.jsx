@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { dashboardAPI } from '../services/api';
+import { LOGO_BASE64 } from '../assets/logo';
 import {
   Palette, Layout, Bell, Database, Lock, Wrench, Info,
   Moon, Sun, Type, Sidebar, Zap, Map, Layers,
@@ -752,7 +753,7 @@ export function SettingsPage({ onSettingsChange, currentDarkMode, onDarkModeChan
             <div style={{ padding: '16px 0', display: 'flex', flexDirection: 'column', gap: 14 }}>
               {/* Logo + version */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div style={{ width: 56, height: 56, borderRadius: 16, background: 'linear-gradient(135deg,#10b981,#059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, boxShadow: '0 8px 24px rgba(16,185,129,0.3)' }}>🌍</div>
+                <img src={LOGO_BASE64} alt="ReMine" style={{ width: 64, height: 64, borderRadius: 16, objectFit: 'cover', boxShadow: '0 8px 24px rgba(16,185,129,0.3)', flexShrink: 0 }} />
                 <div>
                   <h2 style={{ fontSize: 20, fontWeight: 900, color: textPri, margin: 0 }}>ReMine</h2>
                   <p style={{ fontSize: 12, color: '#10b981', margin: '2px 0 0', fontWeight: 700 }}>Citizen Track Dashboard</p>
