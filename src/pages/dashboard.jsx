@@ -1167,14 +1167,14 @@ export default function Dashboard() {
             onSettingsChange={(s) => {
               setDashSettings(s);
               if (s.sidebarCollapsed !== undefined) setCollapsed(s.sidebarCollapsed);
-              // Appliquer fontSize globalement
               if (s.fontSize) {
                 const sizes = { sm: '13px', md: '14px', lg: '16px' };
                 document.documentElement.style.fontSize = sizes[s.fontSize] || '14px';
               }
-              // Appliquer compact mode
               document.documentElement.classList.toggle('compact', !!s.compactMode);
             }}
+            onCreateDemo={handleDemoData}
+            onDeleteDemo={() => setShowDeleteDemoConfirm(true)}
           />
         );
 
@@ -1365,29 +1365,7 @@ export default function Dashboard() {
               </svg>
             </button>
 
-            <div className="hidden sm:flex items-center gap-1.5">
-              <button
-                onClick={handleDemoData}
-                disabled={createDemoDataLoading}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-l-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
-                title="Créer des données de démonstration"
-              >
-                {createDemoDataLoading
-                  ? <span className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-                  : '🎮'}
-                <span className="hidden lg:inline">Données démo</span>
-              </button>
-              <button
-                onClick={() => setShowDeleteDemoConfirm(true)}
-                disabled={deleteDemoLoading}
-                className="flex items-center gap-1 px-2 py-1.5 text-sm font-medium text-red-500 bg-white border border-gray-200 border-l-0 rounded-r-lg hover:bg-red-50 hover:text-red-600 disabled:opacity-50 transition-colors"
-                title="Supprimer les données de démonstration"
-              >
-                {deleteDemoLoading
-                  ? <span className="w-3 h-3 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
-                  : '🗑️'}
-              </button>
-            </div>
+            {/* Données démo → Paramètres > Avancé */}
 
             <NotificationBell onNavigate={(tab, reportId) => handleTabChange(tab, reportId)} />
 
