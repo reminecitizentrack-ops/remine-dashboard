@@ -1028,25 +1028,7 @@ export function ReportsTable({ reports: initialReports, onStatusUpdate, onRefres
             )}
           </div>
 
-          <div className="flex items-center gap-3">
-            <button onClick={handleExport} disabled={!reports.length || loading}
-                    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-sm flex items-center gap-2">
-              📥 CSV
-            </button>
-            {onExportPDF && (
-              <button
-                onClick={() => onExportPDF({ reports, selectedReport })}
-                disabled={!reports.length}
-                className="bg-slate-700 text-white px-4 py-2 rounded-lg hover:bg-slate-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-sm flex items-center gap-2"
-              >
-                📄 PDF
-              </button>
-            )}
-            <button onClick={() => loadReports(filters)} disabled={loading}
-                    className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-colors text-sm flex items-center gap-2">
-              🔄 Actualiser
-            </button>
-          </div>
+          {/* CSV/PDF → bouton Exporter dans la navbar | Actualiser → bouton Auto dans les paramètres */}
         </div>
 
         <AdvancedFilters

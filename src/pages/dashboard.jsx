@@ -1202,7 +1202,7 @@ export default function Dashboard() {
           <div className="relative flex flex-col w-72 h-full bg-white shadow-2xl p-4">
             <div className="flex items-center justify-between mb-6 px-1">
               <div className="flex items-center gap-2">
-                <img src={LOGO_BASE64} alt="ReMine" className="w-9 h-9 object-contain" />
+                <img src={LOGO_BASE64} alt="ReMine" style={{ width:38, height:38, borderRadius:10, objectFit:'cover', flexShrink:0, boxShadow:'0 2px 8px rgba(0,0,0,0.12)' }} />
                 <span className="font-bold text-gray-900">ReMine</span>
               </div>
               <button onClick={() => setSidebarOpen(false)} className="text-gray-400 hover:text-gray-600 text-xl">×</button>
@@ -1222,7 +1222,7 @@ export default function Dashboard() {
       <aside className={`hidden lg:flex flex-col bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 flex-shrink-0 transition-all duration-200 ${collapsed ? 'w-16' : 'w-60 xl:w-64'}`}>
         <div className="flex items-center justify-between px-3 py-4 border-b border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-2 min-w-0">
-            <img src={LOGO_BASE64} alt="ReMine" className="w-9 h-9 object-contain flex-shrink-0" />
+            <img src={LOGO_BASE64} alt="ReMine" style={{ width:38, height:38, borderRadius:10, objectFit:'cover', flexShrink:0, boxShadow:'0 2px 8px rgba(0,0,0,0.12)' }} />
             {!collapsed && (
               <div className="min-w-0">
                 <p className="font-bold text-gray-900 dark:text-white text-sm leading-tight">ReMine</p>
@@ -1231,9 +1231,11 @@ export default function Dashboard() {
             )}
           </div>
           <button onClick={() => setCollapsed(c => !c)}
-                  className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100 flex-shrink-0"
+                  className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 flex-shrink-0 transition-colors"
                   title={collapsed ? 'Étendre la sidebar' : 'Réduire la sidebar'}>
-            {collapsed ? '›' : '‹'}
+            {collapsed
+              ? <ChevronDown size={14} style={{ transform: 'rotate(-90deg)' }} />
+              : <ChevronDown size={14} style={{ transform: 'rotate(90deg)' }} />}
           </button>
         </div>
 
@@ -1337,26 +1339,7 @@ export default function Dashboard() {
               )}
             </div>
 
-            <div className="hidden sm:flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5">
-              <button
-                onClick={() => setAutoRefresh(a => !a)}
-                className={`text-xs font-semibold px-2 py-0.5 rounded transition-colors ${autoRefresh ? 'bg-emerald-100 text-emerald-700' : 'text-gray-400 hover:text-gray-600'}`}
-                title={autoRefresh ? 'Désactiver auto-refresh' : 'Activer auto-refresh'}
-              >
-                {autoRefresh ? `↻ ${refreshCountdown}s` : '↻ Auto'}
-              </button>
-              {autoRefresh && (
-                <select
-                  value={refreshInterval}
-                  onChange={e => setRefreshInterval(Number(e.target.value))}
-                  className="text-xs border-0 bg-transparent text-gray-400 outline-none cursor-pointer"
-                >
-                  <option value={30}>30s</option>
-                  <option value={60}>1min</option>
-                  <option value={300}>5min</option>
-                </select>
-              )}
-            </div>
+            {/* Auto-refresh → configurable dans Paramètres > Données */}
 
             <button
               onClick={() => { setRefreshing(true); refetchAll(); setTimeout(() => setRefreshing(false), 1500); }}
