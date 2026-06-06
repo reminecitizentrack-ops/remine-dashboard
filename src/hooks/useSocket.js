@@ -1,24 +1,33 @@
 // hooks/useSocket.js — Temps réel via SSE (Server-Sent Events)
-// Aucune dépendance externe — fonctionne avec le navigateur natif
+// Gère : nouveaux signalements, mises à jour, suppressions, messages, votes viraux, critiques
 import { useEffect, useRef, useCallback } from 'react';
 
 const SSE_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api') + '/events';
 
-export function useSocket({ onNewReport, onReportUpdated, onReportDeleted, onNewComment, enabled = true } = {}) {
+export function useSocket({
+  onNewReport,
+  onReportUpdated,
+  onReportDeleted,
+  onNewComment,
+  onNewMessage,
+  onReportViral,
+  onCriticalReport,
+  enabled = true,
+} = {}) {
   const esRef        = useRef(null);
   const reconnectRef = useRef(null);
   const attemptsRef  = useRef(0);
-  const MAX_ATTEMPTS = 5;
+  const MAX_ATTEMPTS = 8;
 
   const connect = useCallback(() => {
     if (typeof window === 'undefined' || !enabled) return;
     const token = localStorage.getItem('remine_admin_token');
     if (!token) return;
 
-    // Construire l'URL avec le token en query param (SSE ne supporte pas les headers custom)
     const url = `${SSE_URL}?token=${encodeURIComponent(token)}`;
     const es  = new EventSource(url);
 
+    // ── Événements existants ─────────────────────────────────────────────────
     es.addEventListener('new-report', (e) => {
       try { onNewReport?.(JSON.parse(e.data)); } catch {}
     });
@@ -31,6 +40,19 @@ export function useSocket({ onNewReport, onReportUpdated, onReportDeleted, onNew
     es.addEventListener('new-comment', (e) => {
       try { onNewComment?.(JSON.parse(e.data)); } catch {}
     });
+
+    // ── Nouveaux événements ──────────────────────────────────────────────────
+    es.addEventListener('message-sent', (e) => {
+      try { onNewMessage?.(JSON.parse(e.data)); } catch {}
+    });
+    es.addEventListener('report-viral', (e) => {
+      try { onReportViral?.(JSON.parse(e.data)); } catch {}
+    });
+    es.addEventListener('critical-report', (e) => {
+      try { onCriticalReport?.(JSON.parse(e.data)); } catch {}
+    });
+
+    // ── Ping keepalive ───────────────────────────────────────────────────────
     es.addEventListener('ping', () => { attemptsRef.current = 0; });
 
     es.onopen = () => {
@@ -47,12 +69,11 @@ export function useSocket({ onNewReport, onReportUpdated, onReportDeleted, onNew
       }
       attemptsRef.current++;
       const delay = Math.min(1000 * 2 ** attemptsRef.current, 30000);
-      console.log(`📡 SSE reconnexion dans ${delay / 1000}s (tentative ${attemptsRef.current})`);
       reconnectRef.current = setTimeout(connect, delay);
     };
 
     esRef.current = es;
-  }, [enabled, onNewReport, onReportUpdated, onReportDeleted, onNewComment]);
+  }, [enabled, onNewReport, onReportUpdated, onReportDeleted, onNewComment, onNewMessage, onReportViral, onCriticalReport]);
 
   useEffect(() => {
     connect();
@@ -63,5 +84,12 @@ export function useSocket({ onNewReport, onReportUpdated, onReportDeleted, onNew
     };
   }, [connect]);
 
-  return { isConnected: () => esRef.current?.readyState === EventSource.OPEN };
+  // Méthode pour forcer la reconnexion
+  const reconnect = useCallback(() => {
+    esRef.current?.close();
+    attemptsRef.current = 0;
+    connect();
+  }, [connect]);
+
+  return { reconnect };
 }

@@ -7,33 +7,53 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { dashboardAPI } from '../services/api';
+import { useSocket }   from '../hooks/useSocket';
+import { Bell, BellRing, CheckCheck, Trash2, Mail, Zap, AlertTriangle } from 'lucide-react';
 
 // ─── Config types de notifications ───────────────────────────────────────────
 
 const NOTIF_CONFIG = {
   new_report: {
-    icon:  '📋',
+    icon:  <Bell size={14}/>,
     color: 'bg-blue-50 border-blue-100',
     badge: 'bg-blue-500',
     label: 'Nouveau signalement',
   },
+  critical_report: {
+    icon:  <AlertTriangle size={14}/>,
+    color: 'bg-red-50 border-red-200',
+    badge: 'bg-red-600',
+    label: '🚨 Critique',
+  },
   status_changed: {
-    icon:  '🔄',
+    icon:  <Zap size={14}/>,
     color: 'bg-amber-50 border-amber-100',
     badge: 'bg-amber-500',
     label: 'Statut modifié',
   },
   new_comment: {
-    icon:  '💬',
+    icon:  <Mail size={14}/>,
     color: 'bg-purple-50 border-purple-100',
     badge: 'bg-purple-500',
     label: 'Nouveau message',
   },
   resolved: {
-    icon:  '✅',
+    icon:  <CheckCheck size={14}/>,
     color: 'bg-emerald-50 border-emerald-100',
     badge: 'bg-emerald-500',
-    label: 'Signalement résolu',
+    label: 'Résolu',
+  },
+  viral: {
+    icon:  <Zap size={14}/>,
+    color: 'bg-orange-50 border-orange-100',
+    badge: 'bg-orange-500',
+    label: '🔥 Viral',
+  },
+  message_sent: {
+    icon:  <Mail size={14}/>,
+    color: 'bg-teal-50 border-teal-100',
+    badge: 'bg-teal-500',
+    label: 'Message envoyé',
   },
 };
 
@@ -128,6 +148,50 @@ function buildNotificationsFromReports(reports) {
 
 export function NotificationBell({ onNavigate }) {
   const [open,         setOpen]         = useState(false);
+  const [rtNotifs,     setRtNotifs]     = useState([]); // notifications temps réel SSE
+
+  // ─── SSE temps réel ──────────────────────────────────────────────────────────
+  const addRtNotif = React.useCallback((type, title, message, extra = {}) => {
+    const notif = {
+      id:       'rt_' + Date.now() + '_' + Math.random().toString(36).slice(2),
+      type,
+      title,
+      message,
+      time:     new Date().toISOString(),
+      read:     false,
+      realtime: true,
+      ...extra,
+    };
+    setRtNotifs(prev => [notif, ...prev].slice(0, 30));
+  }, []);
+
+  useSocket({
+    enabled: true,
+    onNewReport: React.useCallback((data) => {
+      var type   = TYPE_LABELS[data.reportType] || data.reportType || 'Signalement';
+      var isCrit = data.severity === 'critical';
+      addRtNotif(
+        isCrit ? 'critical_report' : 'new_report',
+        isCrit ? '🚨 Critique : ' + type : 'Nouveau : ' + type,
+        data.city || data.title || '',
+        { reportId: data.reportId }
+      );
+    }, [addRtNotif]),
+    onReportUpdated: React.useCallback(function(data) {
+      addRtNotif('status_changed', 'Signalement mis à jour', '', { reportId: data.reportId });
+    }, [addRtNotif]),
+    onNewMessage: React.useCallback(function(data) {
+      addRtNotif('message_sent', 'Message → ' + (data.to && data.to.name ? data.to.name : 'citoyen'), data.subject || '', {});
+    }, [addRtNotif]),
+    onReportViral: React.useCallback(function(data) {
+      var type = TYPE_LABELS[data.type] || data.type || 'Signalement';
+      addRtNotif('viral', '🔥 Viral ! Score ' + data.score, type + (data.city ? ' — ' + data.city : ''), { reportId: data.reportId });
+    }, [addRtNotif]),
+    onCriticalReport: React.useCallback(function(data) {
+      var type = TYPE_LABELS[data.type] || data.type || 'Signalement';
+      addRtNotif('critical_report', '🚨 URGENT : ' + type, data.city || '', { reportId: data.reportId });
+    }, [addRtNotif]),
+  });
   const [notifications, setNotifications] = useState([]);
   const [loading,      setLoading]      = useState(false);
   const [filter,       setFilter]       = useState('all'); // all | unread
@@ -244,12 +308,17 @@ export function NotificationBell({ onNavigate }) {
 
   // ── Données filtrées ──────────────────────────────────────────────────────
 
-  // Exclure les notifications supprimées
-  const visibleNotifications = notifications.filter(n => !deletedIds.has(n.id));
+  // Fusionner notifications temps réel + calculées, exclure supprimées
+  const allNotifications = [
+    ...rtNotifs,
+    ...notifications,
+  ].filter((n, i, arr) => arr.findIndex(x => x.id === n.id) === i); // dédup
+
+  const visibleNotifications = allNotifications.filter(n => !deletedIds.has(n.id));
 
   const notificationsWithRead = visibleNotifications.map(n => ({
     ...n,
-    read: readIds.has(n.id),
+    read: n.realtime ? n.read : readIds.has(n.id),
   }));
 
   const filtered = filter === 'unread'

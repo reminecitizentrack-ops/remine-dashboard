@@ -534,16 +534,56 @@ export default function Dashboard() {
     setTimeout(() => setRtToast(null), 4000);
   }, []);
 
+  const TYPE_FR_SSE = {
+    water_pollution:'Pollution eau', air_pollution:'Pollution air',
+    soil_contamination:'Contamination sol', waste_deposit:'Dépôt déchets',
+    dust:'Poussière', abandoned_site:'Site abandonné',
+    noise_pollution:'Pollution sonore', other:'Autre',
+  };
+
   useSocket({
     enabled: true,
     onNewReport: React.useCallback((data) => {
       setRtBadge(b => b + 1);
-      showRtToast('📬 Nouveau signalement reçu', 'info');
+      const type = TYPE_FR_SSE[data.reportType] || data.reportType || 'Signalement';
+      const city = data.city ? ` — ${data.city}` : '';
+      const isCritical = data.severity === 'critical';
+      showRtToast(
+        isCritical ? `🚨 Signalement critique : ${type}${city}` : `📬 Nouveau signalement : ${type}${city}`,
+        isCritical ? 'error' : 'info'
+      );
       refetchAll();
     }, [refetchAll, showRtToast]),
-    onReportUpdated: React.useCallback(() => { refetchAll(); }, [refetchAll]),
-    onReportDeleted: React.useCallback(() => { refetchAll(); }, [refetchAll]),
-    onNewComment:    React.useCallback(() => {}, []),
+
+    onReportUpdated: React.useCallback((data) => {
+      refetchAll();
+    }, [refetchAll]),
+
+    onReportDeleted: React.useCallback((data) => {
+      refetchAll();
+      showRtToast('🗑️ Un signalement a été supprimé', 'warning');
+    }, [refetchAll, showRtToast]),
+
+    onNewComment: React.useCallback((data) => {
+      showRtToast('💬 Nouveau commentaire sur un signalement', 'info');
+    }, [showRtToast]),
+
+    onNewMessage: React.useCallback((data) => {
+      showRtToast(`✉️ Message envoyé à ${data.to?.name || 'un citoyen'}`, 'success');
+    }, [showRtToast]),
+
+    onReportViral: React.useCallback((data) => {
+      const type = TYPE_FR_SSE[data.type] || data.type || 'Signalement';
+      showRtToast(`🔥 Signalement viral ! Score ${data.score} — ${type}${data.city ? ` à ${data.city}` : ''}`, 'warning');
+      setRtBadge(b => b + 1);
+    }, [showRtToast]),
+
+    onCriticalReport: React.useCallback((data) => {
+      const type = TYPE_FR_SSE[data.type] || data.type || 'Signalement';
+      showRtToast(`🚨 URGENT : ${type}${data.city ? ` à ${data.city}` : ''}`, 'error');
+      setRtBadge(b => b + 1);
+      refetchAll();
+    }, [showRtToast, refetchAll]),
   });
 
   React.useEffect(() => {
