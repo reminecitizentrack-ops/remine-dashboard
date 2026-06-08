@@ -1,5 +1,7 @@
-// ─── GlobalSearch — Modal de recherche avancée ───────────────────────────────
 import React from 'react';
+import { Search, ClipboardList, Users, MapPin, ChevronDown } from 'lucide-react';
+
+// ─── GlobalSearch — Modal de recherche avancée ───────────────────────────────
 const TYPE_FR_SEARCH = {
   water_pollution:'Pollution eau', air_pollution:'Pollution air',
   soil_contamination:'Contamination sol', waste_deposit:'Dépôt déchets',
@@ -10,14 +12,17 @@ const SEV_COLOR_SEARCH = { critical:'#dc2626', high:'#f97316', medium:'#f59e0b',
 const STA_LABEL_SEARCH = { new:'Nouveau', verified:'Vérifié', in_progress:'En cours', resolved:'Résolu', rejected:'Rejeté' };
 const STA_COLOR_SEARCH = { new:'#f59e0b', verified:'#3b82f6', in_progress:'#8b5cf6', resolved:'#10b981', rejected:'#ef4444' };
 
-function GlobalSearch({ show, onClose, onNavigate, reports = [], users = [], darkMode: dm }) {
+export function GlobalSearch({ show, onClose, onNavigate, reports = [], users = [], darkMode: dm }) {
   const [q,          setQ]          = React.useState('');
-  const [category,   setCategory]   = React.useState('all'); // all|reports|users|locations
+  const [category,   setCategory]   = React.useState('all');
   const [selected,   setSelected]   = React.useState(0);
   const [serverRes,  setServerRes]  = React.useState(null);
   const [loading,    setLoading]    = React.useState(false);
   const inputRef = React.useRef(null);
   const listRef  = React.useRef(null);
+
+  // ... (le reste de votre code reste identique)
+}
 
   // Focus auto à l'ouverture
   React.useEffect(() => {
@@ -315,6 +320,6 @@ function GlobalSearch({ show, onClose, onNavigate, reports = [], users = [], dar
       </div>
     </div>
   );
-}
+
 
 export { GlobalSearch };
