@@ -1,4 +1,5 @@
 // ─── GlobalSearch — Modal de recherche avancée ───────────────────────────────
+import React from 'react';
 const TYPE_FR_SEARCH = {
   water_pollution:'Pollution eau', air_pollution:'Pollution air',
   soil_contamination:'Contamination sol', waste_deposit:'Dépôt déchets',
