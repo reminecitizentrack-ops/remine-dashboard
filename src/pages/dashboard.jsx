@@ -14,6 +14,7 @@ import { UsersManagement }     from '../components/UsersManagement';
 import { AdvancedAnalytics }   from '../components/AdvancedAnalytics';
 import { SettingsPage }        from '../components/SettingsPage';
 import { TopVotedReports }     from '../components/TopVotedReports';
+import { GlobalSearch }        from '../components/GlobalSearch';
 import { ReportsMap }          from '../components/ReportsMap';
 import { SmartAlerts }         from '../components/SmartAlerts';
 import { ValorizationProjects } from '../components/ValorizationProjects';
@@ -1471,82 +1472,14 @@ export default function Dashboard() {
         </div>
       )}
 
-      {showSearch && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4"
-             onClick={() => { setShowSearch(false); setSearchQuery(''); }}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg border border-gray-200 overflow-hidden"
-               onClick={e => e.stopPropagation()}>
-            <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
-              <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <input
-                autoFocus
-                type="text"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Rechercher signalement, utilisateur, commune…"
-                className="flex-1 text-sm outline-none text-gray-800 placeholder-gray-400"
-              />
-              <button onClick={() => { setShowSearch(false); setSearchQuery(''); }}
-                      className="text-gray-400 hover:text-gray-600 text-xs border border-gray-200 rounded px-1.5 py-0.5 font-mono">Esc</button>
-            </div>
-            <div className="max-h-80 overflow-y-auto">
-              {searchQuery.length < 2 ? (
-                <div className="px-4 py-6 text-center text-sm text-gray-400">
-                  Tapez au moins 2 caractères pour chercher
-                </div>
-              ) : searchResults.reports.length === 0 && searchResults.users.length === 0 ? (
-                <div className="px-4 py-6 text-center text-sm text-gray-400">Aucun résultat pour « {searchQuery} »</div>
-              ) : (
-                <div>
-                  {searchResults.reports.length > 0 && (
-                    <div>
-                      <p className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider bg-gray-50">Signalements</p>
-                      {searchResults.reports.map(r => (
-                        <button key={r._id || r.id}
-                                onClick={() => { handleTabChange('reports'); setShowSearch(false); setSearchQuery(''); }}
-                                className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-50 flex items-start gap-3">
-                          <span className="text-base flex-shrink-0">📋</span>
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium text-gray-800 truncate">{r.type?.replace('_', ' ')}</p>
-                            <p className="text-xs text-gray-400 truncate">{r.description?.substring(0, 60)}</p>
-                          </div>
-                          <span className={`flex-shrink-0 text-xs px-2 py-0.5 rounded-full ${r.status === 'resolved' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>{r.status}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {searchResults.users.length > 0 && (
-                    <div>
-                      <p className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider bg-gray-50">Utilisateurs</p>
-                      {searchResults.users.map(u => (
-                        <button key={u._id || u.id}
-                                onClick={() => { handleTabChange('citoyens'); setShowSearch(false); setSearchQuery(''); }}
-                                className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3">
-                          <div className="w-8 h-8 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
-                            {u.firstName?.[0]}{u.lastName?.[0]}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium text-gray-800">{u.firstName} {u.lastName}</p>
-                            <p className="text-xs text-gray-400">{u.email}</p>
-                          </div>
-                          <span className="flex-shrink-0 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{u.role}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-            <div className="px-4 py-2 border-t border-gray-100 bg-gray-50 flex gap-4 text-xs text-gray-400">
-              <span><kbd className="font-mono bg-white border border-gray-200 rounded px-1">↵</kbd> ouvrir</span>
-              <span><kbd className="font-mono bg-white border border-gray-200 rounded px-1">Esc</kbd> fermer</span>
-              <span><kbd className="font-mono bg-white border border-gray-200 rounded px-1">1-7</kbd> onglets</span>
-            </div>
-          </div>
-        </div>
-      )}
+      <GlobalSearch
+        show={showSearch}
+        onClose={() => { setShowSearch(false); setSearchQuery(''); }}
+        onNavigate={handleTabChange}
+        reports={memoizedReports}
+        users={memoizedUsers}
+        darkMode={darkMode}
+      />
 
       {/* Modal confirmation suppression données démo */}
       {showDeleteDemoConfirm && (
