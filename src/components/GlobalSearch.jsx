@@ -315,3 +315,5 @@ function GlobalSearch({ show, onClose, onNavigate, reports = [], users = [], dar
     </div>
   );
 }
+
+export { GlobalSearch };
