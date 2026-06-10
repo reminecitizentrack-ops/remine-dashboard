@@ -21,9 +21,6 @@ export function GlobalSearch({ show, onClose, onNavigate, reports = [], users = 
   const inputRef = React.useRef(null);
   const listRef  = React.useRef(null);
 
-  // ... (le reste de votre code reste identique)
-}
-
   // Focus auto à l'ouverture
   React.useEffect(() => {
     if (show) { setQ(''); setCategory('all'); setSelected(0); setServerRes(null); setTimeout(() => inputRef.current?.focus(), 50); }
@@ -320,6 +317,4 @@ export function GlobalSearch({ show, onClose, onNavigate, reports = [], users = 
       </div>
     </div>
   );
-
-
-export { GlobalSearch };
+}

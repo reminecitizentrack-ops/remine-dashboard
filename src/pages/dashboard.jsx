@@ -5,7 +5,7 @@ import {
   ShieldCheck, Settings, Bell, RefreshCw, Download,
   AlertTriangle, CheckCircle, UserCheck, Leaf, Droplets,
   Recycle, DollarSign, Activity, TrendingUp, MapPin,
-  Search, LogOut, ChevronDown, Zap, Globe,
+  LogOut, ChevronDown, Zap, Globe,
 } from 'lucide-react';
 import { StatsOverview }       from '../components/StatsOverview';
 import { ReportsTable }        from '../components/ReportsTable';
