@@ -148,8 +148,24 @@ export const AIAnalysisPanel = ({ report, onInsightsUpdate }) => {
                   {(PRIORITY_CONFIG[analysis.recommendedPriority] || PRIORITY_CONFIG.medium).label}
                 </span>
               </div>
-              {analysis.summary && (
-                <p className="text-gray-600 text-xs mt-1 italic">{analysis.summary}</p>
+              {analysis.confidence !== undefined && (
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Fiabilité</span>
+                  <span className="font-medium text-gray-700">{Math.round((analysis.confidence || 0) * 100)}%</span>
+                </div>
+              )}
+              {analysis.sentiment?.label && (
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Sentiment</span>
+                  <span className={`font-medium text-xs px-2 py-0.5 rounded-full ${
+                    analysis.sentiment.label === 'NEGATIVE' ? 'bg-red-100 text-red-700' :
+                    analysis.sentiment.label === 'POSITIVE' ? 'bg-green-100 text-green-700' :
+                    'bg-gray-100 text-gray-600'
+                  }`}>
+                    {analysis.sentiment.label === 'NEGATIVE' ? 'Alarmant' :
+                     analysis.sentiment.label === 'POSITIVE' ? 'Positif' : 'Neutre'}
+                  </span>
+                </div>
               )}
             </div>
           </div>
