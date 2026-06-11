@@ -22,6 +22,8 @@ import { AIAnalysisPanel }     from '../components/AIAnalysisPanel';
 import { AIPriorityEngine }    from '../components/AIPriorityEngine';
 import { AIPatternDetector }   from '../components/AIPatternDetector';
 import { PredictiveInsights }  from '../components/PredictiveInsights';
+import { ClusterDetector }     from '../components/ClusterDetector';
+import { WeeklyBriefing }      from '../components/WeeklyBriefing';
 import { MetricCard }          from '../components/MetricCard';
 import { StatsCards }          from '../components/StatsCards';
 import { TagsManager }         from '../components/TagsManager';
@@ -1106,6 +1108,8 @@ export default function Dashboard() {
                     <AIPatternDetector reports={memoizedReports} patterns={aiPatterns} loading={aiLoading} />
                   </div>
                   <PredictiveInsights reports={memoizedReports} patterns={aiPatterns} />
+                  <ClusterDetector reports={memoizedReports} />
+                  <WeeklyBriefing reports={memoizedReports} users={memoizedStats?.users || []} />
                 </div>
               );
               if (sub === 'analytics') return (
