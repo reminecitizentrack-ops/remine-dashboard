@@ -24,6 +24,7 @@ import { AIPatternDetector }   from '../components/AIPatternDetector';
 import { PredictiveInsights }  from '../components/PredictiveInsights';
 import { ClusterDetector }     from '../components/ClusterDetector';
 import { WeeklyBriefing }      from '../components/WeeklyBriefing';
+import { PushNotificationPanel } from '../components/PushNotificationPanel';
 import { MetricCard }          from '../components/MetricCard';
 import { StatsCards }          from '../components/StatsCards';
 import { TagsManager }         from '../components/TagsManager';
@@ -1172,6 +1173,7 @@ export default function Dashboard() {
               { id: 'history',    label: 'Historique',    icon: '⏱️' },
               { id: 'tags',       label: 'Tags',          icon: <Zap        size={14}/> },
               { id: 'autoreport', label: 'Rapport auto',  icon: <Download   size={14}/> },
+              { id: 'notifications', label: 'Notifications', icon: '🔔' },
             ]}
           >
             {(sub) => {
@@ -1193,6 +1195,7 @@ export default function Dashboard() {
                 </div>
               );
               if (sub === 'autoreport') return <AutoReport />;
+              if (sub === 'notifications') return <PushNotificationPanel users={memoizedUsers} reports={memoizedReports} />;
               return <DeletionLogs />;
             }}
           </TabGroup>
