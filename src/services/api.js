@@ -110,6 +110,46 @@ export const dashboardAPI = {
     }
   },
 
+  async requestPasswordReset(email) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      return await response.json();
+    } catch (error) {
+      console.error('❌ Erreur demande de réinitialisation:', error);
+      return { success: false, error: 'Impossible de contacter le serveur' };
+    }
+  },
+
+  async verifyResetToken(email, token) {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/auth/verify-reset-token?email=${encodeURIComponent(email)}&token=${encodeURIComponent(token)}`
+      );
+      return await response.json();
+    } catch (error) {
+      console.error('❌ Erreur vérification token:', error);
+      return { success: false, error: 'Impossible de contacter le serveur' };
+    }
+  },
+
+  async confirmPasswordReset(email, token, newPassword) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/confirm-reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, token, newPassword }),
+      });
+      return await response.json();
+    } catch (error) {
+      console.error('❌ Erreur confirmation réinitialisation:', error);
+      return { success: false, error: 'Impossible de contacter le serveur' };
+    }
+  },
+
   logout() {
     tokenStorage.clear();
     cache.clear();

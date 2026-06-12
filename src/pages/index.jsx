@@ -14,6 +14,12 @@ export default function LoginPage() {
   const [apiOk, setApiOk] = useState(null);
   const [checking, setChecking] = useState(true);
 
+  // Mot de passe oublié
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotResult, setForgotResult] = useState(null); // { success, message }
+
   useEffect(() => {
     const token = localStorage.getItem('remine_admin_token');
     if (token) { router.push('/dashboard'); return; }
@@ -51,6 +57,31 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    if (!forgotEmail.trim()) return;
+    setForgotLoading(true);
+    setForgotResult(null);
+    try {
+      const result = await dashboardAPI.requestPasswordReset(forgotEmail.trim());
+      if (result.success) {
+        setForgotResult({ success: true, message: result.message || 'Si cet email existe, un lien de réinitialisation vous a été envoyé.' });
+      } else {
+        setForgotResult({ success: false, message: result.error || 'Une erreur est survenue.' });
+      }
+    } catch {
+      setForgotResult({ success: false, message: 'Impossible de contacter le serveur.' });
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const closeForgotModal = () => {
+    setShowForgot(false);
+    setForgotEmail('');
+    setForgotResult(null);
   };
 
   if (checking) return null;
@@ -174,6 +205,18 @@ export default function LoginPage() {
 
         .divider { height:1px; background:rgba(255,255,255,0.06); margin:24px 0; }
         .footer { text-align:center; font-size:11px; color:rgba(255,255,255,0.18); margin-top:16px; letter-spacing:0.3px; }
+
+        .forgot-link { background:none; border:none; color:rgba(45,212,96,0.8); font-size:12px; font-weight:600; cursor:pointer; padding:0; transition:color 0.2s; }
+        .forgot-link:hover { color:#2dd460; text-decoration:underline; }
+
+        .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.65); backdrop-filter:blur(4px); z-index:1000; display:flex; align-items:center; justify-content:center; padding:20px; }
+        .modal-box { position:relative; background:#0f1f15; border:1px solid rgba(255,255,255,0.08); border-radius:20px; padding:32px 28px; max-width:420px; width:100%; box-shadow:0 20px 60px rgba(0,0,0,0.5); }
+        .modal-close { position:absolute; top:16px; right:16px; background:rgba(255,255,255,0.06); border:none; color:rgba(255,255,255,0.5); width:28px; height:28px; border-radius:8px; cursor:pointer; font-size:13px; transition:all 0.2s; }
+        .modal-close:hover { background:rgba(255,255,255,0.12); color:#fff; }
+        .modal-icon { font-size:36px; text-align:center; margin-bottom:12px; }
+        .modal-title { font-family:'Syne',sans-serif; font-size:20px; font-weight:800; color:#fff; text-align:center; margin:0 0 8px; }
+        .modal-sub { font-size:13px; color:rgba(255,255,255,0.5); text-align:center; line-height:1.6; margin:0 0 20px; }
+        .modal-hint { font-size:12px; color:rgba(45,212,96,0.7); text-align:center; margin:-8px 0 16px; line-height:1.5; }
         .senegal-badge { display:flex; align-items:center; justify-content:center; gap:6px; font-size:12px; color:rgba(255,255,255,0.25); }
       `}</style>
 
@@ -228,6 +271,11 @@ export default function LoginPage() {
                   <input type={showPwd ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required autoComplete="current-password" style={{ paddingRight:'42px' }} />
                   <button type="button" className="toggle" onClick={() => setShowPwd(!showPwd)}>{showPwd ? '🙈' : '👁️'}</button>
                 </div>
+                <div style={{ textAlign: 'right', marginTop: 8 }}>
+                  <button type="button" className="forgot-link" onClick={() => { setShowForgot(true); setForgotEmail(email); }}>
+                    Mot de passe oublié ?
+                  </button>
+                </div>
               </div>
               <button type="submit" className="btn" disabled={loading}>
                 {loading ? '⏳ Connexion...' : '🚀 Se connecter'}
@@ -237,9 +285,61 @@ export default function LoginPage() {
             <div className="divider" />
             <div className="senegal-badge">🇸🇳 Plateforme citoyenne — Sénégal</div>
             <p className="footer">ReMine Citizen Track v1.0 · Espace administrateur</p>
+
           </div>
         </div>
       </div>
+
+      {/* ── Modal Mot de passe oublié ──────────────────────────────────── */}
+      {showForgot && (
+        <div className="modal-overlay" onClick={closeForgotModal}>
+          <div className="modal-box" onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={closeForgotModal}>✕</button>
+
+            {!forgotResult ? (
+              <>
+                <div className="modal-icon">🔐</div>
+                <h2 className="modal-title">Mot de passe oublié</h2>
+                <p className="modal-sub">
+                  Entrez votre adresse email. Si un compte existe, nous vous envoyons un lien pour réinitialiser votre mot de passe.
+                </p>
+                <form onSubmit={handleForgotPassword}>
+                  <div className="field">
+                    <label>Adresse email</label>
+                    <div className="inp-wrap">
+                      <input
+                        type="email"
+                        value={forgotEmail}
+                        onChange={e => setForgotEmail(e.target.value)}
+                        placeholder="admin@remine.sn"
+                        required
+                        autoFocus
+                      />
+                    </div>
+                  </div>
+                  <button type="submit" className="btn" disabled={forgotLoading}>
+                    {forgotLoading ? '⏳ Envoi en cours...' : '📧 Envoyer le lien'}
+                  </button>
+                </form>
+              </>
+            ) : (
+              <>
+                <div className="modal-icon">{forgotResult.success ? '✅' : '⚠️'}</div>
+                <h2 className="modal-title">{forgotResult.success ? 'Email envoyé' : 'Erreur'}</h2>
+                <p className="modal-sub">{forgotResult.message}</p>
+                {forgotResult.success && (
+                  <p className="modal-hint">
+                    Vérifiez votre boîte de réception (et vos spams). Le lien expire dans 1 heure.
+                  </p>
+                )}
+                <button type="button" className="btn" onClick={closeForgotModal}>
+                  {forgotResult.success ? 'Compris' : 'Réessayer'}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }
