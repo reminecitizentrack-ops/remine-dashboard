@@ -59,7 +59,6 @@ export default function ResetPasswordPage() {
       const res = await dashboardAPI.confirmPasswordReset(String(email), String(token), password);
       if (res.success) {
         setResult({ success: true, message: res.message || 'Mot de passe réinitialisé avec succès.' });
-        setTimeout(() => router.push('/'), 2500);
       } else {
         setResult({ success: false, message: res.error || 'Une erreur est survenue.' });
       }
@@ -169,7 +168,10 @@ export default function ResetPasswordPage() {
             <>
               <div className="icon">✅</div>
               <h1 className="title">Mot de passe modifié</h1>
-              <p className="sub">{result.message} Vous allez être redirigé vers la page de connexion...</p>
+              <p className="sub">{result.message}</p>
+              <p className="sub" style={{ marginTop: -16 }}>
+                Vous pouvez maintenant vous connecter avec votre nouveau mot de passe, sur l'application mobile ReMine ou sur le tableau de bord administrateur.
+              </p>
               <button className="btn" onClick={() => router.push('/')}>
                 Aller à la connexion
               </button>
@@ -239,7 +241,7 @@ export default function ResetPasswordPage() {
             </>
           )}
 
-          <p className="footer">ReMine Citizen Track v1.0 · Espace administrateur</p>
+          <p className="footer">ReMine Citizen Track v1.0</p>
         </div>
       </div>
     </>
