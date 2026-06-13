@@ -40,6 +40,24 @@ export default function MapClusterLayer({ reports = [], onSelect, selected, make
       document.head.appendChild(link);
     });
 
+    // Empêche tout effet hover (scale/transform) hérité des styles par défaut
+    // de leaflet.markercluster, qui donne une impression de "saut" des clusters.
+    if (!document.getElementById('cluster-hover-fix')) {
+      const style = document.createElement('style');
+      style.id = 'cluster-hover-fix';
+      style.textContent = `
+        .marker-cluster, .marker-cluster div, .marker-cluster span,
+        .leaflet-marker-icon, .leaflet-div-icon {
+          transition: none !important;
+          transform-origin: center center;
+        }
+        .marker-cluster:hover, .marker-cluster:hover div {
+          transform: none !important;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
     try { require('leaflet.markercluster'); } catch {}
 
     // Supprimer l'ancien groupe proprement
@@ -53,7 +71,7 @@ export default function MapClusterLayer({ reports = [], onSelect, selected, make
     const group = L.markerClusterGroup({
       maxClusterRadius: 60,
       spiderfyOnMaxZoom: true,
-      showCoverageOnHover: true,
+      showCoverageOnHover: false,
       zoomToBoundsOnClick: true,
       iconCreateFunction: (cluster) => {
         const count    = cluster.getChildCount();
