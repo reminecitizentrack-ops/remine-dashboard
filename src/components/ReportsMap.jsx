@@ -170,6 +170,137 @@ function DetailPanel({ report, onClose, darkMode: dm }) {
   );
 }
 
+// ─── Panneau de résumé de zone (dessinée) ─────────────────────────────────────
+function ZoneSummaryPanel({ reports, onClose, onClear, darkMode: dm }) {
+  const byType = useMemo(() => reports.reduce((acc, r) => {
+    acc[r.type || 'other'] = (acc[r.type || 'other'] || 0) + 1;
+    return acc;
+  }, {}), [reports]);
+
+  const bySeverity = useMemo(() => reports.reduce((acc, r) => {
+    acc[r.severity || 'low'] = (acc[r.severity || 'low'] || 0) + 1;
+    return acc;
+  }, {}), [reports]);
+
+  const byStatus = useMemo(() => reports.reduce((acc, r) => {
+    acc[r.status || 'new'] = (acc[r.status || 'new'] || 0) + 1;
+    return acc;
+  }, {}), [reports]);
+
+  const resolved = byStatus.resolved || 0;
+  const resRate  = reports.length ? Math.round((resolved / reports.length) * 100) : 0;
+
+  const handleExport = () => {
+    const headers = ['Type', 'Sévérité', 'Statut', 'Description', 'Adresse', 'Date'];
+    const rows = reports.map(r => [
+      (TYPE_CFG[r.type] || TYPE_CFG.other).label,
+      (SEV_CFG[r.severity] || SEV_CFG.low).label,
+      (STATUS_CFG[r.status] || { label: r.status }).label,
+      (r.description || '').replace(/\n/g, ' ').substring(0, 200),
+      r.location?.address || '',
+      fmtDate(r.createdAt),
+    ]);
+    const csv = [headers, ...rows]
+      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `remine_zone_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div style={{ position: 'absolute', bottom: 12, left: 12, zIndex: 1000, width: 280, background: dm ? '#1e293b' : '#fff', borderRadius: 20, boxShadow: '0 8px 40px rgba(0,0,0,0.18)', border: `1px solid ${dm ? '#334155' : '#f1f5f9'}`, overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: 'calc(100% - 24px)', animation: 'detailPanelIn 0.25s cubic-bezier(0.22,1,0.36,1) both' }}>
+      <div style={{ background: 'linear-gradient(135deg,#8b5cf622,#ede9fe)', padding: '14px 16px', borderBottom: `1px solid ${dm ? '#334155' : '#f1f5f9'}`, display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span style={{ fontSize: 24, flexShrink: 0 }}>✏️</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontWeight: 800, fontSize: 14, color: dm ? '#f1f5f9' : '#0f172a', margin: 0 }}>Résumé de zone</p>
+          <p style={{ fontSize: 11, color: dm ? '#94a3b8' : '#64748b', margin: '2px 0 0' }}>{reports.length} signalement{reports.length > 1 ? 's' : ''} dans la zone</p>
+        </div>
+        <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: '50%', background: dm ? '#334155' : '#f1f5f9', border: 'none', cursor: 'pointer', color: dm ? '#94a3b8' : '#64748b', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>✕</button>
+      </div>
+
+      <div style={{ overflowY: 'auto', flex: 1, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+
+        {reports.length === 0 ? (
+          <p style={{ fontSize: 12, color: dm ? '#94a3b8' : '#6b7280', textAlign: 'center', padding: '12px 0' }}>
+            Aucun signalement dans cette zone.
+          </p>
+        ) : (
+          <>
+            {/* Résolution */}
+            <div style={{ padding: '10px 12px', background: dm ? '#0f172a' : '#f8fafc', borderRadius: 10, border: `1px solid ${dm ? '#1e293b' : '#f1f5f9'}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: 12, color: dm ? '#cbd5e1' : '#374151', fontWeight: 600 }}>Taux de résolution</span>
+              <span style={{ fontSize: 18, fontWeight: 900, color: resRate >= 60 ? '#22c55e' : resRate >= 30 ? '#f59e0b' : '#ef4444' }}>{resRate}%</span>
+            </div>
+
+            {/* Par type */}
+            <div>
+              <p style={{ fontSize: 10, fontWeight: 700, color: dm ? '#64748b' : '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 6px' }}>Par type</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {Object.entries(byType).sort((a, b) => b[1] - a[1]).map(([t, n]) => {
+                  const cfg = TYPE_CFG[t] || TYPE_CFG.other;
+                  return (
+                    <div key={t} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12 }}>
+                      <span style={{ color: dm ? '#cbd5e1' : '#374151' }}>{cfg.icon} {cfg.label}</span>
+                      <strong style={{ color: '#8b5cf6' }}>{n}</strong>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Par sévérité */}
+            <div>
+              <p style={{ fontSize: 10, fontWeight: 700, color: dm ? '#64748b' : '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 6px' }}>Par sévérité</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {Object.entries(bySeverity).sort((a, b) => b[1] - a[1]).map(([s, n]) => {
+                  const cfg = SEV_CFG[s] || SEV_CFG.low;
+                  return (
+                    <span key={s} style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 99, background: `${cfg.color}18`, color: cfg.color, border: `1px solid ${cfg.color}30` }}>
+                      ● {cfg.label} ({n})
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Par statut */}
+            <div>
+              <p style={{ fontSize: 10, fontWeight: 700, color: dm ? '#64748b' : '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 6px' }}>Par statut</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {Object.entries(byStatus).sort((a, b) => b[1] - a[1]).map(([s, n]) => {
+                  const cfg = STATUS_CFG[s] || { label: s, bg: '#f3f4f6', color: '#374151' };
+                  return (
+                    <span key={s} style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 99, background: cfg.bg, color: cfg.color }}>
+                      {cfg.label} ({n})
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+              <button onClick={handleExport} style={{ flex: 1, fontSize: 11, fontWeight: 700, padding: '8px 12px', borderRadius: 8, background: '#8b5cf6', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                ⬇️ Exporter CSV
+              </button>
+              <button onClick={onClear} style={{ fontSize: 11, fontWeight: 700, padding: '8px 12px', borderRadius: 8, background: dm ? '#334155' : '#fee2e2', color: dm ? '#94a3b8' : '#dc2626', border: 'none', cursor: 'pointer' }}>
+                Effacer la zone
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Bouton contrôle ──────────────────────────────────────────────────────────
 function CtrlBtn({ onClick, title, active, children, danger, darkMode: dm }) {
   return (
@@ -201,6 +332,7 @@ export function ReportsMap({ reports = [], onReportClick }) {
   const [drawMode,        setDrawMode]        = useState(false);
   const [drawnPoints,     setDrawnPoints]     = useState([]);
   const [drawnZone,       setDrawnZone]       = useState(null);
+  const [showZoneSummary, setShowZoneSummary] = useState(true);
 
   const darkMode = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
 
@@ -228,8 +360,8 @@ export function ReportsMap({ reports = [], onReportClick }) {
   }, []);
 
   const handleDrawPoint    = useCallback((pt) => setDrawnPoints(prev => [...prev, pt]), []);
-  const handleDrawComplete = useCallback(() => { if (drawnPoints.length >= 3) { setDrawnZone(drawnPoints); setDrawMode(false); setDrawnPoints([]); } }, [drawnPoints]);
-  const clearZone          = useCallback(() => { setDrawnZone(null); setDrawnPoints([]); setDrawMode(false); }, []);
+  const handleDrawComplete = useCallback(() => { if (drawnPoints.length >= 3) { setDrawnZone(drawnPoints); setDrawMode(false); setDrawnPoints([]); setShowZoneSummary(true); } }, [drawnPoints]);
+  const clearZone          = useCallback(() => { setDrawnZone(null); setDrawnPoints([]); setDrawMode(false); setShowZoneSummary(true); }, []);
 
   const makeIcon = useCallback((report, isSelected) => {
     if (typeof window === 'undefined') return null;
@@ -291,6 +423,7 @@ export function ReportsMap({ reports = [], onReportClick }) {
             <CtrlBtn onClick={() => setHeatMode(h => !h)}    active={heatMode}                                        darkMode={darkMode} title="Heatmap">🔥 Heatmap</CtrlBtn>
             <CtrlBtn onClick={locateUser}                     active={!!userLocation}                                  darkMode={darkMode} title="Me localiser">{locating ? '⏳' : userLocation ? '📍' : '🎯'} GPS</CtrlBtn>
             <CtrlBtn onClick={() => { if (drawMode) { setDrawMode(false); setDrawnPoints([]); } else { clearZone(); setDrawMode(true); } }} active={drawMode} danger={drawMode} darkMode={darkMode} title={drawMode ? 'Annuler' : 'Dessiner une zone'}>✏️ {drawMode ? 'Dessiner…' : 'Zone'}</CtrlBtn>
+            {drawnZone && <CtrlBtn onClick={() => setShowZoneSummary(s => !s)} active={showZoneSummary} darkMode={darkMode} title="Résumé de la zone">📊 Résumé</CtrlBtn>}
             {drawnZone && <CtrlBtn onClick={clearZone} danger darkMode={darkMode} title="Effacer la zone">✕ Zone</CtrlBtn>}
             <div style={{ position: 'relative' }}>
               <CtrlBtn onClick={() => setShowStylePicker(s => !s)} active={showStylePicker} darkMode={darkMode}>{MAP_STYLES[mapStyle].label}</CtrlBtn>
@@ -386,6 +519,16 @@ export function ReportsMap({ reports = [], onReportClick }) {
 
         {/* Panneau de détail */}
         {selected && <DetailPanel report={selected} onClose={() => { setSelected(null); setFlyTo(null); }} darkMode={darkMode} />}
+
+        {/* Résumé de zone dessinée */}
+        {drawnZone && !selected && showZoneSummary && (
+          <ZoneSummaryPanel
+            reports={filtered}
+            darkMode={darkMode}
+            onClose={() => setShowZoneSummary(false)}
+            onClear={clearZone}
+          />
+        )}
 
         {/* Aucun résultat */}
         {filtered.length === 0 && !drawMode && (
