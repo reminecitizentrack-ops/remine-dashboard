@@ -109,6 +109,53 @@ function getTimeline(reports, days = 30) {
   return result.map((d, i) => ({ ...d, label: i % 5 === 0 ? d.label : '' }));
 }
 
+// Compare le score de risque de la période actuelle (30j) vs la précédente (30-60j)
+function getTrend(reports, days = 30) {
+  const now = Date.now();
+  const cutoff1 = now - days * 86400000;
+  const cutoff2 = now - days * 2 * 86400000;
+
+  const current  = reports.filter(r => r.createdAt && new Date(r.createdAt).getTime() >= cutoff1);
+  const previous = reports.filter(r => {
+    if (!r.createdAt) return false;
+    const t = new Date(r.createdAt).getTime();
+    return t >= cutoff2 && t < cutoff1;
+  });
+
+  const currentRisk  = getRiskScore(computeRegionStats(current));
+  const previousRisk = getRiskScore(computeRegionStats(previous));
+
+  const diff = currentRisk.score - previousRisk.score;
+  let direction = 'stable';
+  if (diff >= 10) direction = 'up';
+  else if (diff <= -10) direction = 'down';
+
+  return { diff, direction, currentScore: currentRisk.score, previousScore: previousRisk.score };
+}
+
+// Export CSV des stats régionales
+function exportRegionsCSV(regionRanking) {
+  const headers = ['Région', 'Total', 'Résolus', 'Actifs', 'Critiques', 'Taux résolution (%)', 'Score de risque', 'Niveau de risque', 'Tendance'];
+  const rows = regionRanking.map(r => [
+    r.name, r.total, r.resolved, r.active, r.critical, r.resolutionRate,
+    r.risk.score, r.risk.label,
+    r.trend.direction === 'up' ? 'En hausse' : r.trend.direction === 'down' ? 'En baisse' : 'Stable',
+  ]);
+  const csv = [headers, ...rows]
+    .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    .join('\n');
+
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `remine_regions_${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 function StatCard({ label, value, icon, color, bg, border }) {
   return (
@@ -157,11 +204,12 @@ export const RegionDashboard = ({ reports: allReports = [] }) => {
   const accent = '#2dd460';
   const tooltipStyle = { background: dark ? '#1a2e1f' : '#fff', border: `1px solid ${bord}`, borderRadius: 8, color: txt, fontSize: 12 };
 
-  // ── Régions détectées depuis les données
+  // ── Régions : liste officielle + toute région détectée non-listée (ex: villes étrangères)
   const regions = useMemo(() => {
-    const s = new Set();
-    allReports.forEach(r => { const z = getRegionFromReport(r); if (z) s.add(z); });
-    return Array.from(s).sort();
+    const detected = new Set();
+    allReports.forEach(r => { const z = getRegionFromReport(r); if (z) detected.add(z); });
+    const extra = Array.from(detected).filter(r => !SENEGAL_REGIONS.includes(r));
+    return [...SENEGAL_REGIONS, ...extra.sort()];
   }, [allReports]);
 
   // ── Stats de la région sélectionnée
@@ -184,12 +232,12 @@ export const RegionDashboard = ({ reports: allReports = [] }) => {
     return computeRegionStats(allReports.filter(r => getRegionFromReport(r) === compareB));
   }, [allReports, compareB]);
 
-  // ── Classement global des régions
+  // ── Classement global des régions (+ tendance)
   const regionRanking = useMemo(() => {
     return regions.map(reg => {
       const reps = allReports.filter(r => getRegionFromReport(r) === reg);
       const s = computeRegionStats(reps);
-      return { name: reg, ...s, risk: getRiskScore(s) };
+      return { name: reg, ...s, risk: getRiskScore(s), trend: getTrend(reps), hasData: reps.length > 0 };
     }).sort((a, b) => b.total - a.total);
   }, [regions, allReports]);
 
@@ -225,15 +273,23 @@ export const RegionDashboard = ({ reports: allReports = [] }) => {
             <div style={{ width: 44, height: 44, background: 'rgba(45,212,96,0.1)', border: '1px solid rgba(45,212,96,0.25)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>🗺️</div>
             <div>
               <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: txt }}>Tableau de bord régional</h2>
-              <p style={{ margin: 0, fontSize: 12, color: muted }}>{allReports.length} signalement{allReports.length > 1 ? 's' : ''} · {regions.length} région{regions.length > 1 ? 's' : ''} détectée{regions.length > 1 ? 's' : ''}</p>
+              <p style={{ margin: 0, fontSize: 12, color: muted }}>{allReports.length} signalement{allReports.length > 1 ? 's' : ''} · {regions.length} région{regions.length > 1 ? 's' : ''} ({SENEGAL_REGIONS.length} officielles)</p>
             </div>
           </div>
-          <button
-            onClick={() => { setCompareMode(!compareMode); setSelected(''); }}
-            style={{ padding: '7px 14px', fontSize: 12, fontWeight: 600, borderRadius: 10, border: `1px solid ${compareMode ? accent : bord}`, background: compareMode ? 'rgba(45,212,96,0.1)' : 'transparent', color: compareMode ? accent : muted, cursor: 'pointer', transition: 'all 0.2s' }}
-          >
-            ⚖️ {compareMode ? 'Quitter la comparaison' : 'Comparer des régions'}
-          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={() => exportRegionsCSV(regionRanking)}
+              style={{ padding: '7px 14px', fontSize: 12, fontWeight: 600, borderRadius: 10, border: `1px solid ${bord}`, background: 'transparent', color: muted, cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              ⬇️ Exporter CSV
+            </button>
+            <button
+              onClick={() => { setCompareMode(!compareMode); setSelected(''); }}
+              style={{ padding: '7px 14px', fontSize: 12, fontWeight: 600, borderRadius: 10, border: `1px solid ${compareMode ? accent : bord}`, background: compareMode ? 'rgba(45,212,96,0.1)' : 'transparent', color: compareMode ? accent : muted, cursor: 'pointer', transition: 'all 0.2s' }}
+            >
+              ⚖️ {compareMode ? 'Quitter la comparaison' : 'Comparer des régions'}
+            </button>
+          </div>
         </div>
 
         {/* Boutons de région */}
@@ -246,14 +302,12 @@ export const RegionDashboard = ({ reports: allReports = [] }) => {
               🌍 Toutes les régions
             </button>
           )}
-          {regions.length === 0 && (
-            <p style={{ fontSize: 13, color: muted, fontStyle: 'italic', margin: 0 }}>Aucune région détectée dans les signalements</p>
-          )}
           {regions.map(reg => {
             const rData = regionRanking.find(r => r.name === reg);
             const isSelected = compareMode ? (compareA === reg || compareB === reg) : selected === reg;
             const isA = compareMode && compareA === reg;
             const isB = compareMode && compareB === reg;
+            const trendIcon = rData?.trend.direction === 'up' ? '↗️' : rData?.trend.direction === 'down' ? '↘️' : null;
             return (
               <button
                 key={reg}
@@ -271,13 +325,19 @@ export const RegionDashboard = ({ reports: allReports = [] }) => {
                   padding: '7px 14px', fontSize: 12, fontWeight: 600, borderRadius: 10,
                   border: `1px solid ${isSelected ? (isA ? '#3b82f6' : isB ? '#f59e0b' : accent) : bord}`,
                   background: isSelected ? (isA ? 'rgba(59,130,246,0.12)' : isB ? 'rgba(245,158,11,0.12)' : 'rgba(45,212,96,0.12)') : 'transparent',
-                  color: isSelected ? (isA ? '#3b82f6' : isB ? '#f59e0b' : accent) : muted,
+                  color: isSelected ? (isA ? '#3b82f6' : isB ? '#f59e0b' : accent) : (rData?.hasData ? muted : `${muted}80`),
                   cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 6,
+                  opacity: rData?.hasData ? 1 : 0.55,
                 }}
               >
                 <span style={{ width: 7, height: 7, borderRadius: '50%', background: rData?.risk.color || '#6b7280', flexShrink: 0 }} />
                 {reg}
-                {rData && <span style={{ fontSize: 10, opacity: 0.7 }}>({rData.total})</span>}
+                {rData?.hasData ? (
+                  <span style={{ fontSize: 10, opacity: 0.7 }}>({rData.total})</span>
+                ) : (
+                  <span style={{ fontSize: 9, opacity: 0.6, fontStyle: 'italic' }}>—</span>
+                )}
+                {trendIcon && <span style={{ fontSize: 11 }} title={rData.trend.direction === 'up' ? 'Risque en hausse' : 'Risque en baisse'}>{trendIcon}</span>}
                 {isA && <span style={{ fontSize: 10, fontWeight: 800, color: '#3b82f6' }}>A</span>}
                 {isB && <span style={{ fontSize: 10, fontWeight: 800, color: '#f59e0b' }}>B</span>}
               </button>
@@ -352,6 +412,17 @@ export const RegionDashboard = ({ reports: allReports = [] }) => {
       {/* ── Vue région sélectionnée / globale ───────────────────────────── */}
       {!compareMode && (
         <>
+          {/* Bandeau "aucune donnée" pour une région sans signalement */}
+          {selected && stats.total === 0 && (
+            <div style={{ background: 'rgba(34,197,94,0.07)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 12, padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span style={{ fontSize: 24 }}>✅</span>
+              <div>
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: dark ? '#86efac' : '#166534' }}>Aucun signalement pour {selected}</p>
+                <p style={{ margin: 0, fontSize: 12, color: muted }}>Cette région n'a enregistré aucun incident environnemental à ce jour.</p>
+              </div>
+            </div>
+          )}
+
           {/* KPIs + Risk */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
             <StatCard label="Total" value={stats.total} icon="📋" color={accent} bg={bg} border={bord} />
@@ -454,15 +525,33 @@ export const RegionDashboard = ({ reports: allReports = [] }) => {
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <span style={{ fontSize: 13, fontWeight: 700, color: txt }}>📍 {reg.name}</span>
                             <RiskBadge risk={reg.risk} size="sm" />
+                            {reg.trend.direction === 'up' && (
+                              <span style={{ fontSize: 10, fontWeight: 700, color: '#ef4444', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 20, padding: '1px 7px' }}>
+                                ↗️ Risque en hausse
+                              </span>
+                            )}
+                            {reg.trend.direction === 'down' && (
+                              <span style={{ fontSize: 10, fontWeight: 700, color: '#22c55e', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 20, padding: '1px 7px' }}>
+                                ↘️ En amélioration
+                              </span>
+                            )}
                           </div>
                           <div style={{ display: 'flex', gap: 12, fontSize: 12, color: muted }}>
-                            <span><strong style={{ color: txt }}>{reg.total}</strong> signalements</span>
-                            <span><strong style={{ color: reg.resolutionRate >= 60 ? '#22c55e' : '#f59e0b' }}>{reg.resolutionRate}%</strong> résolus</span>
+                            {reg.hasData ? (
+                              <>
+                                <span><strong style={{ color: txt }}>{reg.total}</strong> signalements</span>
+                                <span><strong style={{ color: reg.resolutionRate >= 60 ? '#22c55e' : '#f59e0b' }}>{reg.resolutionRate}%</strong> résolus</span>
+                              </>
+                            ) : (
+                              <span style={{ fontStyle: 'italic' }}>Aucun signalement</span>
+                            )}
                           </div>
                         </div>
-                        <div style={{ height: 5, background: bord, borderRadius: 3, overflow: 'hidden' }}>
-                          <div style={{ width: `${pct}%`, height: '100%', background: PALETTE[i % PALETTE.length], borderRadius: 3, transition: 'width 0.6s ease' }} />
-                        </div>
+                        {reg.hasData && (
+                          <div style={{ height: 5, background: bord, borderRadius: 3, overflow: 'hidden' }}>
+                            <div style={{ width: `${pct}%`, height: '100%', background: PALETTE[i % PALETTE.length], borderRadius: 3, transition: 'width 0.6s ease' }} />
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
