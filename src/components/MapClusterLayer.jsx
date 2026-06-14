@@ -71,8 +71,10 @@ export default function MapClusterLayer({ reports = [], onSelect, selected, make
     const group = L.markerClusterGroup({
       maxClusterRadius: 60,
       spiderfyOnMaxZoom: true,
+      spiderfyDistanceMultiplier: 2,
       showCoverageOnHover: false,
-      zoomToBoundsOnClick: true,
+      zoomToBoundsOnClick: false,
+      disableClusteringAtZoom: 16,
       iconCreateFunction: (cluster) => {
         const count    = cluster.getChildCount();
         const children = cluster.getAllChildMarkers();
