@@ -17,7 +17,7 @@ const MapController = dynamic(
       const leafMap = useMap();
 
       useEffect(() => {
-        if (flyTo) { leafMap.flyTo([flyTo.lat, flyTo.lng], 14, { animate: true, duration: 0.9 }); return; }
+        if (flyTo) { leafMap.flyTo([flyTo.lat, flyTo.lng], flyTo.zoom || 14, { animate: true, duration: 0.9 }); return; }
         if (!reports.length) return;
         const L = require('leaflet');
         const grp = new L.FeatureGroup();
@@ -108,6 +108,24 @@ const MAP_STYLES = {
   satellite: { label: '🛰️ Satellite', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',                 attr: '© Esri'          },
   dark:      { label: '🌙 Sombre',     url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',                                                attr: '© CartoDB'       },
   topo:      { label: '⛰️ Topo',      url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',                                                             attr: '© OpenTopoMap'   },
+};
+
+// Centres approximatifs des 14 régions du Sénégal pour le zoom rapide
+const SENEGAL_REGIONS = {
+  'Dakar':       { lat: 14.7167, lng: -17.4677, zoom: 11 },
+  'Thiès':       { lat: 14.7910, lng: -16.9359, zoom: 10 },
+  'Diourbel':    { lat: 14.6592, lng: -16.2333, zoom: 10 },
+  'Fatick':      { lat: 14.3390, lng: -16.4110, zoom: 10 },
+  'Kaolack':     { lat: 14.1825, lng: -16.0667, zoom: 10 },
+  'Kaffrine':    { lat: 14.1059, lng: -15.5500, zoom: 10 },
+  'Kolda':       { lat: 12.8983, lng: -14.9500, zoom: 9  },
+  'Louga':       { lat: 15.6173, lng: -16.2240, zoom: 9  },
+  'Matam':       { lat: 15.6559, lng: -13.2548, zoom: 9  },
+  'Saint-Louis': { lat: 16.0179, lng: -16.4896, zoom: 9  },
+  'Sédhiou':     { lat: 12.7081, lng: -15.5569, zoom: 10 },
+  'Tambacounda': { lat: 13.7707, lng: -13.6673, zoom: 8  },
+  'Kédougou':    { lat: 12.5556, lng: -12.1747, zoom: 9  },
+  'Ziguinchor':  { lat: 12.5641, lng: -16.2733, zoom: 10 },
 };
 
 const getCitizenName = r => {
@@ -334,9 +352,118 @@ export function ReportsMap({ reports = [], onReportClick }) {
   const [drawnZone,       setDrawnZone]       = useState(null);
   const [showZoneSummary, setShowZoneSummary] = useState(true);
 
+  // Recherche d'adresse
+  const [searchQuery,    setSearchQuery]    = useState('');
+  const [searchResults,  setSearchResults]  = useState([]);
+  const [searching,      setSearching]      = useState(false);
+  const [showSearch,     setShowSearch]     = useState(false);
+  const searchTimeoutRef = useRef(null);
+
+  // Zoom rapide par région
+  const [showRegionPicker, setShowRegionPicker] = useState(false);
+
+  // Comparaison temporelle
+  const [compareMode,    setCompareMode]    = useState(false);
+  const [compareDate,    setCompareDate]    = useState(() => {
+    const d = new Date(); d.setDate(d.getDate() - 30);
+    return d.toISOString().slice(0, 10);
+  });
+
+  // Lien partagé (init depuis l'URL au montage)
+  const [linkCopied, setLinkCopied] = useState(false);
+  const urlInitRef = useRef(false);
+
   const darkMode = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
 
   useEffect(() => { setIsClient(true); }, []);
+
+  // Ferme les dropdowns (recherche, régions) au clic extérieur
+  useEffect(() => {
+    const handler = (e) => {
+      if (!containerRef.current) return;
+      if (!e.target.closest?.('.map-search-wrap') && showSearch) setShowSearch(false);
+      if (!e.target.closest?.('.map-region-wrap') && showRegionPicker) setShowRegionPicker(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showSearch, showRegionPicker]);
+
+  // ── Lecture des filtres depuis l'URL au montage ──────────────────────────────
+  useEffect(() => {
+    if (typeof window === 'undefined' || urlInitRef.current) return;
+    urlInitRef.current = true;
+    const params = new URLSearchParams(window.location.search);
+    const t = params.get('mtype');
+    const s = params.get('msev');
+    const st = params.get('mstatus');
+    const cl = params.get('mcluster');
+    const hm = params.get('mheat');
+    if (t)  setFilterType(t);
+    if (s)  setFilterSev(s);
+    if (st) setFilterSta(st);
+    if (cl) setClusterMode(cl === '1');
+    if (hm) setHeatMode(hm === '1');
+  }, []);
+
+  // ── Écriture des filtres actifs dans l'URL (sans recharger la page) ─────────
+  useEffect(() => {
+    if (typeof window === 'undefined' || !urlInitRef.current) return;
+    const params = new URLSearchParams(window.location.search);
+    const setOrDelete = (key, val, defaultVal) => {
+      if (val && val !== defaultVal) params.set(key, val);
+      else params.delete(key);
+    };
+    setOrDelete('mtype', filterType, 'all');
+    setOrDelete('msev', filterSev, 'all');
+    setOrDelete('mstatus', filterSta, 'all');
+    setOrDelete('mcluster', clusterMode ? '1' : '0', '1');
+    setOrDelete('mheat', heatMode ? '1' : '0', '0');
+    const newUrl = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}${window.location.hash}`;
+    window.history.replaceState(null, '', newUrl);
+  }, [filterType, filterSev, filterSta, clusterMode, heatMode]);
+
+  const handleCopyLink = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    navigator.clipboard?.writeText(window.location.href).then(() => {
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    });
+  }, []);
+
+  // ── Recherche d'adresse (géocodage Nominatim/OpenStreetMap) ──────────────────
+  const handleSearchChange = useCallback((value) => {
+    setSearchQuery(value);
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    if (value.trim().length < 3) { setSearchResults([]); return; }
+    searchTimeoutRef.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&limit=5&countrycodes=sn&q=${encodeURIComponent(value)}`,
+          { headers: { 'Accept-Language': 'fr' } }
+        );
+        const data = await res.json();
+        setSearchResults(Array.isArray(data) ? data : []);
+      } catch {
+        setSearchResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 400);
+  }, []);
+
+  const handleSearchSelect = useCallback((result) => {
+    setFlyTo({ lat: parseFloat(result.lat), lng: parseFloat(result.lon), zoom: 13 });
+    setSearchQuery(result.display_name);
+    setSearchResults([]);
+    setShowSearch(false);
+  }, []);
+
+  const handleRegionSelect = useCallback((regionName) => {
+    const r = SENEGAL_REGIONS[regionName];
+    if (r) setFlyTo({ lat: r.lat, lng: r.lng, zoom: r.zoom });
+    setShowRegionPicker(false);
+  }, []);
 
   useEffect(() => {
     const handler = () => setIsFullscreen(!!document.fullscreenElement);
@@ -363,7 +490,7 @@ export function ReportsMap({ reports = [], onReportClick }) {
   const handleDrawComplete = useCallback(() => { if (drawnPoints.length >= 3) { setDrawnZone(drawnPoints); setDrawMode(false); setDrawnPoints([]); setShowZoneSummary(true); } }, [drawnPoints]);
   const clearZone          = useCallback(() => { setDrawnZone(null); setDrawnPoints([]); setDrawMode(false); setShowZoneSummary(true); }, []);
 
-  const makeIcon = useCallback((report, isSelected) => {
+  const makeIcon = useCallback((report, isSelected, opacity = 1) => {
     if (typeof window === 'undefined') return null;
     const L   = require('leaflet');
     const sev = SEV_CFG[report.severity] || SEV_CFG.low;
@@ -371,7 +498,7 @@ export function ReportsMap({ reports = [], onReportClick }) {
     const s   = isSelected ? sev.size * 1.5 : sev.size;
     const pulse = isSelected ? `<circle cx="${(s+12)/2}" cy="${(s+12)/2}" r="${s/2+5}" fill="${sev.color}" opacity="0.2"><animate attributeName="r" from="${s/2+3}" to="${s/2+10}" dur="1.2s" repeatCount="indefinite"/><animate attributeName="opacity" from="0.3" to="0" dur="1.2s" repeatCount="indefinite"/></circle>` : '';
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${s+12}" height="${s+12}" viewBox="0 0 ${s+12} ${s+12}">${pulse}<circle cx="${(s+12)/2}" cy="${(s+12)/2}" r="${s/2+2}" fill="${sev.ring}" opacity="0.45"/><circle cx="${(s+12)/2}" cy="${(s+12)/2}" r="${s/2}" fill="${sev.color}" stroke="white" stroke-width="${isSelected?3:2}"/></svg>`;
-    return L.divIcon({ html: `<div style="position:relative;filter:${isSelected?`drop-shadow(0 4px 12px ${sev.color}88)`:'none'}">${svg}<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:${Math.round(s*0.55)}px;line-height:1">${typ.icon}</span></div>`, className: '', iconSize: [s+12,s+12], iconAnchor: [(s+12)/2,(s+12)/2] });
+    return L.divIcon({ html: `<div style="position:relative;opacity:${opacity};filter:${isSelected?`drop-shadow(0 4px 12px ${sev.color}88)`:'none'}">${svg}<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:${Math.round(s*0.55)}px;line-height:1">${typ.icon}</span></div>`, className: '', iconSize: [s+12,s+12], iconAnchor: [(s+12)/2,(s+12)/2] });
   }, []);
 
   const handleSelect = useCallback((report) => {
@@ -395,6 +522,17 @@ export function ReportsMap({ reports = [], onReportClick }) {
   const presentTypes = useMemo(() => [...new Set(reports.map(r => r.type).filter(Boolean))], [reports]);
   const heatPoints   = useMemo(() => filtered.map(r => { const c = extractCoords(r); return c ? { ...c, severity: r.severity } : null; }).filter(Boolean), [filtered]);
   const quickStats   = useMemo(() => ({ critical: filtered.filter(r => r.severity==='critical').length, resolved: filtered.filter(r => r.status==='resolved').length, unresolved: filtered.filter(r => !['resolved','rejected'].includes(r.status)).length }), [filtered]);
+
+  // ── Comparaison temporelle : sépare les signalements avant/après la date pivot ──
+  const compareCutoff = useMemo(() => new Date(compareDate).getTime(), [compareDate]);
+  const beforeReports = useMemo(() => {
+    if (!compareMode) return [];
+    return filtered.filter(r => r.createdAt && new Date(r.createdAt).getTime() < compareCutoff);
+  }, [filtered, compareMode, compareCutoff]);
+  const afterReports = useMemo(() => {
+    if (!compareMode) return [];
+    return filtered.filter(r => r.createdAt && new Date(r.createdAt).getTime() >= compareCutoff);
+  }, [filtered, compareMode, compareCutoff]);
 
   if (!isClient) return (
     <div style={{ background: '#fff', borderRadius: 20, border: '1px solid #f1f5f9', padding: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
@@ -439,6 +577,61 @@ export function ReportsMap({ reports = [], onReportClick }) {
           </div>
         </div>
 
+        {/* Ligne 2 : recherche, régions, comparaison, partage */}
+        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
+          {/* Recherche d'adresse */}
+          <div className="map-search-wrap" style={{ position: 'relative', flex: '1 1 220px', maxWidth: 320 }}>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => handleSearchChange(e.target.value)}
+              onFocus={() => setShowSearch(true)}
+              placeholder="🔍 Rechercher un lieu au Sénégal…"
+              style={{ width: '100%', padding: '7px 11px', borderRadius: 10, border: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}`, background: darkMode ? '#1e293b' : '#fff', color: darkMode ? '#e2e8f0' : '#374151', fontSize: 12, outline: 'none', boxSizing: 'border-box' }}
+            />
+            {searching && <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 12 }}>⏳</span>}
+            {showSearch && searchResults.length > 0 && (
+              <div style={{ position: 'absolute', top: '110%', left: 0, right: 0, zIndex: 1100, background: darkMode ? '#1e293b' : '#fff', border: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}`, borderRadius: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.15)', overflow: 'hidden' }}>
+                {searchResults.map((r, i) => (
+                  <button key={i} onClick={() => handleSearchSelect(r)} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 12px', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 12, color: darkMode ? '#cbd5e1' : '#374151', borderBottom: i < searchResults.length - 1 ? `1px solid ${darkMode ? '#334155' : '#f1f5f9'}` : 'none' }}>
+                    📍 {r.display_name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Zoom rapide par région */}
+          <div className="map-region-wrap" style={{ position: 'relative' }}>
+            <CtrlBtn onClick={() => setShowRegionPicker(s => !s)} active={showRegionPicker} darkMode={darkMode} title="Zoomer sur une région">🧭 Régions</CtrlBtn>
+            {showRegionPicker && (
+              <div style={{ position: 'absolute', top: '110%', left: 0, zIndex: 1100, background: darkMode ? '#1e293b' : '#fff', border: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}`, borderRadius: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.15)', padding: 6, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, minWidth: 280, maxHeight: 280, overflowY: 'auto' }}>
+                {Object.keys(SENEGAL_REGIONS).map(name => (
+                  <button key={name} onClick={() => handleRegionSelect(name)} style={{ padding: '7px 10px', borderRadius: 8, border: 'none', cursor: 'pointer', background: 'transparent', color: darkMode ? '#cbd5e1' : '#374151', fontSize: 12, fontWeight: 600, textAlign: 'left' }}>
+                    📍 {name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Comparaison temporelle */}
+          <CtrlBtn onClick={() => setCompareMode(c => !c)} active={compareMode} darkMode={darkMode} title="Comparer avant/après une date">📅 Comparer</CtrlBtn>
+          {compareMode && (
+            <input
+              type="date"
+              value={compareDate}
+              onChange={e => setCompareDate(e.target.value)}
+              style={{ padding: '6px 10px', borderRadius: 10, border: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}`, background: darkMode ? '#1e293b' : '#fff', color: darkMode ? '#e2e8f0' : '#374151', fontSize: 12, outline: 'none' }}
+            />
+          )}
+
+          {/* Partage de lien */}
+          <CtrlBtn onClick={handleCopyLink} darkMode={darkMode} title="Copier le lien avec les filtres actuels">
+            {linkCopied ? '✅ Copié !' : '🔗 Partager'}
+          </CtrlBtn>
+        </div>
+
         {/* Stats rapides */}
         <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: 8 }}>
           {[{ label:'Critiques', value: quickStats.critical, color:'#dc2626', bg:'#fee2e2' }, { label:'Non résolus', value: quickStats.unresolved, color:'#f59e0b', bg:'#fffbeb' }, { label:'Résolus', value: quickStats.resolved, color:'#10b981', bg:'#dcfce7' }].map(s => (
@@ -446,6 +639,11 @@ export function ReportsMap({ reports = [], onReportClick }) {
           ))}
           {locError && <span style={{ padding: '3px 11px', borderRadius: 99, background: '#fee2e2', color: '#dc2626', fontSize: 11, fontWeight: 600 }}>⚠️ {locError}</span>}
           {drawMode && <span style={{ padding: '3px 11px', borderRadius: 99, background: '#ede9fe', color: '#7c3aed', fontSize: 11, fontWeight: 700 }}>✏️ Cliquez pour placer des points · Double-clic pour terminer ({drawnPoints.length} pts)</span>}
+          {compareMode && (
+            <span style={{ padding: '3px 11px', borderRadius: 99, background: darkMode ? '#1e3a5f33' : '#eff6ff', color: '#3b82f6', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+              📅 <span style={{ opacity: 0.4 }}>● avant {new Date(compareDate).toLocaleDateString('fr-FR')}</span> ({beforeReports.length}) · <span>● après</span> ({afterReports.length})
+            </span>
+          )}
         </div>
 
         {/* Filtres statut + sévérité */}
@@ -477,10 +675,18 @@ export function ReportsMap({ reports = [], onReportClick }) {
           <MapController reports={filtered} flyTo={flyTo} drawMode={drawMode} onDrawPoint={handleDrawPoint} onDrawComplete={handleDrawComplete} drawnPoints={drawnPoints} />
 
           {/* Clusters */}
-          {!heatMode && clusterMode && <ClusterLayer reports={filtered} onSelect={handleSelect} selected={selected} makeIcon={makeIcon} />}
+          {!heatMode && !compareMode && clusterMode && <ClusterLayer reports={filtered} onSelect={handleSelect} selected={selected} makeIcon={makeIcon} />}
 
-          {/* Marqueurs individuels */}
-          {!heatMode && !clusterMode && filtered.map(report => {
+          {/* Mode comparaison : avant (estompé) / après (normal) */}
+          {!heatMode && compareMode && clusterMode && (
+            <>
+              <ClusterLayer reports={beforeReports} onSelect={handleSelect} selected={selected} makeIcon={(r, sel) => makeIcon(r, sel, 0.35)} />
+              <ClusterLayer reports={afterReports}  onSelect={handleSelect} selected={selected} makeIcon={(r, sel) => makeIcon(r, sel, 1)} />
+            </>
+          )}
+
+          {/* Marqueurs individuels (sans clustering) */}
+          {!heatMode && !clusterMode && !compareMode && filtered.map(report => {
             const coords = extractCoords(report);
             if (!coords) return null;
             const isSelected = selected?._id === report._id || selected?.id === report.id;
