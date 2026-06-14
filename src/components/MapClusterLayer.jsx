@@ -54,6 +54,16 @@ export default function MapClusterLayer({ reports = [], onSelect, selected, make
         .marker-cluster:hover, .marker-cluster:hover div {
           transform: none !important;
         }
+        .leaflet-marker-icon:hover,
+        .leaflet-div-icon:hover,
+        .leaflet-marker-icon:focus,
+        .leaflet-div-icon:focus {
+          transform: none !important;
+          margin-top: 0 !important;
+        }
+        .leaflet-pane .leaflet-marker-icon {
+          will-change: auto !important;
+        }
       `;
       document.head.appendChild(style);
     }
