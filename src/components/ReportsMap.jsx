@@ -498,10 +498,16 @@ export function ReportsMap({ reports = [], onReportClick }) {
     const s   = isSelected ? sev.size * 1.5 : sev.size;
     const pulse = isSelected ? `<circle cx="${(s+12)/2}" cy="${(s+12)/2}" r="${s/2+5}" fill="${sev.color}" opacity="0.2"><animate attributeName="r" from="${s/2+3}" to="${s/2+10}" dur="1.2s" repeatCount="indefinite"/><animate attributeName="opacity" from="0.3" to="0" dur="1.2s" repeatCount="indefinite"/></circle>` : '';
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${s+12}" height="${s+12}" viewBox="0 0 ${s+12} ${s+12}">${pulse}<circle cx="${(s+12)/2}" cy="${(s+12)/2}" r="${s/2+2}" fill="${sev.ring}" opacity="0.45"/><circle cx="${(s+12)/2}" cy="${(s+12)/2}" r="${s/2}" fill="${sev.color}" stroke="white" stroke-width="${isSelected?3:2}"/></svg>`;
-    return L.divIcon({ html: `<div style="position:relative;width:${s+12}px;height:${s+12}px;opacity:${opacity};pointer-events:none;filter:${isSelected?`drop-shadow(0 4px 12px ${sev.color}88)`:'none'}">${svg}<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:${Math.round(s*0.55)}px;line-height:1">${typ.icon}</span></div>`, className: '', iconSize: [s+12,s+12], iconAnchor: [(s+12)/2,(s+12)/2] });
+    return L.divIcon({ html: `<div style="position:relative;width:${s+12}px;height:${s+12}px;opacity:${opacity};filter:${isSelected?`drop-shadow(0 4px 12px ${sev.color}88)`:'none'}">${svg}<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:${Math.round(s*0.55)}px;line-height:1">${typ.icon}</span></div>`, className: '', iconSize: [s+12,s+12], iconAnchor: [(s+12)/2,(s+12)/2] });
   }, []);
 
   const handleSelect = useCallback((report) => {
+    setSelected(report);
+    if (onReportClick) onReportClick(report);
+  }, [onReportClick]);
+
+  // flyTo séparé utilisé uniquement depuis les clusters (pas depuis les marqueurs individuels)
+  const handleClusterSelect = useCallback((report) => {
     setSelected(report);
     const coords = extractCoords(report);
     if (coords) setFlyTo(coords);
@@ -675,13 +681,13 @@ export function ReportsMap({ reports = [], onReportClick }) {
           <MapController reports={filtered} flyTo={flyTo} drawMode={drawMode} onDrawPoint={handleDrawPoint} onDrawComplete={handleDrawComplete} drawnPoints={drawnPoints} />
 
           {/* Clusters */}
-          {!heatMode && !compareMode && clusterMode && <ClusterLayer reports={filtered} onSelect={handleSelect} selected={selected} makeIcon={makeIcon} />}
+          {!heatMode && !compareMode && clusterMode && <ClusterLayer reports={filtered} onSelect={handleClusterSelect} selected={selected} makeIcon={makeIcon} />}
 
           {/* Mode comparaison : avant (estompé) / après (normal) */}
           {!heatMode && compareMode && clusterMode && (
             <>
-              <ClusterLayer reports={beforeReports} onSelect={handleSelect} selected={selected} makeIcon={(r, sel) => makeIcon(r, sel, 0.35)} />
-              <ClusterLayer reports={afterReports}  onSelect={handleSelect} selected={selected} makeIcon={(r, sel) => makeIcon(r, sel, 1)} />
+              <ClusterLayer reports={beforeReports} onSelect={handleClusterSelect} selected={selected} makeIcon={(r, sel) => makeIcon(r, sel, 0.35)} />
+              <ClusterLayer reports={afterReports}  onSelect={handleClusterSelect} selected={selected} makeIcon={(r, sel) => makeIcon(r, sel, 1)} />
             </>
           )}
 

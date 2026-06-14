@@ -46,23 +46,38 @@ export default function MapClusterLayer({ reports = [], onSelect, selected, make
       const style = document.createElement('style');
       style.id = 'cluster-hover-fix';
       style.textContent = `
-        .marker-cluster, .marker-cluster div, .marker-cluster span,
-        .leaflet-marker-icon, .leaflet-div-icon {
+        /* Supprime TOUTES les transitions et transformations sur les marqueurs */
+        .leaflet-marker-pane *,
+        .leaflet-shadow-pane *,
+        .leaflet-overlay-pane *,
+        .marker-cluster,
+        .marker-cluster div,
+        .marker-cluster span {
           transition: none !important;
-          transform-origin: center center;
+          animation: none !important;
         }
-        .marker-cluster:hover, .marker-cluster:hover div {
-          transform: none !important;
+
+        /* Empêche le déplacement vertical des marqueurs au survol */
+        .leaflet-marker-icon,
+        .leaflet-div-icon {
+          transition: none !important;
+          top: auto !important;
+          transform-origin: bottom center !important;
         }
+
+        /* Leaflet monte le marqueur de quelques px au hover via margin-top négatif
+           sur .leaflet-marker-icon — on le neutralise ici */
         .leaflet-marker-icon:hover,
-        .leaflet-div-icon:hover,
-        .leaflet-marker-icon:focus,
-        .leaflet-div-icon:focus {
-          transform: none !important;
+        .leaflet-div-icon:hover {
           margin-top: 0 !important;
+          transform: none !important;
+          z-index: auto !important;
         }
-        .leaflet-pane .leaflet-marker-icon {
-          will-change: auto !important;
+
+        /* Supprime l'effet hover des clusters */
+        .marker-cluster:hover,
+        .marker-cluster:hover div {
+          transform: none !important;
         }
       `;
       document.head.appendChild(style);
@@ -112,6 +127,14 @@ export default function MapClusterLayer({ reports = [], onSelect, selected, make
         marker.on('click', () => onSelect && onSelect(r));
         group.addLayer(marker);
       } catch {}
+    });
+
+    // Après ajout de chaque marqueur, fixe margin-top à 0 pour éviter
+    // que Leaflet ne déplace le marqueur verticalement au survol/_updateZIndex
+    group.on('animationend', () => {
+      group.getLayers().forEach(layer => {
+        if (layer._icon) layer._icon.style.marginTop = '0px';
+      });
     });
 
     map.addLayer(group);
