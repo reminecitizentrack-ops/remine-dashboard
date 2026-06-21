@@ -83,10 +83,13 @@ function computeRegionStats(reports) {
   });
   const resolved = reports.filter(r => r.status === 'resolved').length;
   const active   = reports.filter(r => ['new', 'verified', 'in_progress'].includes(r.status)).length;
+  const totalVotes = reports.reduce((sum, r) => sum + (r.voteCount || r.votes?.length || 0), 0);
   return {
     total: reports.length, resolved, active,
     resolutionRate: reports.length ? Math.round((resolved / reports.length) * 100) : 0,
     critical: bySeverity.critical || 0,
+    totalVotes,
+    avgVotesPerReport: reports.length ? Math.round((totalVotes / reports.length) * 10) / 10 : 0,
     byType, byStatus, bySeverity,
     recent: [...reports].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 8),
   };
@@ -135,9 +138,9 @@ function getTrend(reports, days = 30) {
 
 // Export CSV des stats régionales
 function exportRegionsCSV(regionRanking) {
-  const headers = ['Région', 'Total', 'Résolus', 'Actifs', 'Critiques', 'Taux résolution (%)', 'Score de risque', 'Niveau de risque', 'Tendance'];
+  const headers = ['Région', 'Total', 'Résolus', 'Actifs', 'Critiques', 'Taux résolution (%)', 'Votes citoyens', 'Score de risque', 'Niveau de risque', 'Tendance'];
   const rows = regionRanking.map(r => [
-    r.name, r.total, r.resolved, r.active, r.critical, r.resolutionRate,
+    r.name, r.total, r.resolved, r.active, r.critical, r.resolutionRate, r.totalVotes || 0,
     r.risk.score, r.risk.label,
     r.trend.direction === 'up' ? 'En hausse' : r.trend.direction === 'down' ? 'En baisse' : 'Stable',
   ]);
@@ -429,6 +432,7 @@ export const RegionDashboard = ({ reports: allReports = [] }) => {
             <StatCard label="Résolus" value={stats.resolved} icon="✅" color="#22c55e" bg={bg} border={bord} />
             <StatCard label="Actifs" value={stats.active} icon="⏳" color="#f59e0b" bg={bg} border={bord} />
             <StatCard label="Critiques" value={stats.critical} icon="🚨" color="#ef4444" bg={bg} border={bord} />
+            <StatCard label="Votes citoyens" value={stats.totalVotes} icon="🗳️" color="#8b5cf6" bg={bg} border={bord} />
             <div style={{ background: bg, border: `1px solid ${bord}`, borderRadius: 14, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
               <p style={{ margin: 0, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', color: muted }}>Risque zone</p>
               <RiskBadge risk={risk} />
@@ -541,6 +545,7 @@ export const RegionDashboard = ({ reports: allReports = [] }) => {
                               <>
                                 <span><strong style={{ color: txt }}>{reg.total}</strong> signalements</span>
                                 <span><strong style={{ color: reg.resolutionRate >= 60 ? '#22c55e' : '#f59e0b' }}>{reg.resolutionRate}%</strong> résolus</span>
+                                <span><strong style={{ color: '#8b5cf6' }}>🗳️ {reg.totalVotes || 0}</strong> votes</span>
                               </>
                             ) : (
                               <span style={{ fontStyle: 'italic' }}>Aucun signalement</span>
